@@ -24,6 +24,20 @@ const envVar = "TEST_DATABASE_URL"
 func New(t *testing.T) *sql.DB {
 	t.Helper()
 
+	testDB, err := sql.Open("pgx", NewURL(t))
+	if err != nil {
+		t.Fatalf("open test database: %v", err)
+	}
+	// Registered after NewURL's cleanup, so it runs first and the database is free to drop.
+	t.Cleanup(func() { _ = testDB.Close() })
+
+	return testDB
+}
+
+// NewURL creates a fresh, empty database, returns its connection URL, and drops it when the test ends.
+func NewURL(t *testing.T) string {
+	t.Helper()
+
 	adminURL := os.Getenv(envVar)
 	if adminURL == "" {
 		t.Skipf("%s not set; start Postgres (deploy/docker-compose.yml) and export it to run DB tests", envVar)
@@ -47,21 +61,14 @@ func New(t *testing.T) *sql.DB {
 	}
 	u.Path = "/" + name
 
-	testDB, err := sql.Open("pgx", u.String())
-	if err != nil {
-		_ = admin.Close()
-		t.Fatalf("open test database: %v", err)
-	}
-
 	t.Cleanup(func() {
-		_ = testDB.Close()
 		if _, err := admin.Exec("DROP DATABASE IF EXISTS " + name + " WITH (FORCE)"); err != nil {
 			t.Errorf("drop test database %s: %v", name, err)
 		}
 		_ = admin.Close()
 	})
 
-	return testDB
+	return u.String()
 }
 
 func randomSuffix(t *testing.T) string {
