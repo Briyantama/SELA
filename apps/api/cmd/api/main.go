@@ -22,6 +22,7 @@ import (
 
 	"github.com/Briyantama/SELA/internal/config"
 	"github.com/Briyantama/SELA/services/auth"
+	"github.com/Briyantama/SELA/services/event"
 )
 
 const (
@@ -74,13 +75,16 @@ func run(ctx context.Context, getenv func(string) string) error {
 		auth.Options{HMACKey: cfg.OTPHMACKey},
 	)
 
+	eventSvc := event.NewService(event.NewPostgresRepository(conn), event.Options{ShortLinkBaseURL: cfg.ShortLinkBaseURL})
+
+	authHTTP := auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.HTTPPort,
-		Handler:      newMux(auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})),
+		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP)),
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	}
-	grpcSrv := newGRPCServer(svc)
+	grpcSrv := newGRPCServer(svc, eventSvc)
 	grpcListener, err := net.Listen("tcp", ":"+cfg.GRPCPort)
 	if err != nil {
 		return fmt.Errorf("listen for grpc: %w", err)
