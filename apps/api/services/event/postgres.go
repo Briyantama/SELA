@@ -56,6 +56,26 @@ type Repository interface {
 	CreateEvent(ctx context.Context, e NewEvent) (Record, error)
 	// GetEvent returns ErrNotFound unless the event exists AND belongs to hostID.
 	GetEvent(ctx context.Context, hostID, eventID string) (Record, error)
+	// GetEventByShortCode returns ErrNotFound when no event has the code. It applies no
+	// status or expiry rules; the Service does.
+	GetEventByShortCode(ctx context.Context, code string) (PublicRecord, error)
+}
+
+// PublicRecord is the row behind a short link, including the fields the Service needs to decide
+// whether the event may still be resolved.
+type PublicRecord struct {
+	EventID      string
+	ShortCode    string
+	Name         string
+	EventDate    string
+	Timezone     string
+	CategoryCode string
+	ThemeKey     string
+	Status       string
+	ShotLimit    *int
+	RevealMode   string
+	RevealAt     *time.Time
+	ExpiresAt    *time.Time
 }
 
 // PostgresRepository implements Repository on the event_categories and events tables.
@@ -167,6 +187,41 @@ func (r *PostgresRepository) CreateEvent(ctx context.Context, e NewEvent) (Recor
 		}
 	}
 	return Record{}, fmt.Errorf("create event: %w", err)
+}
+
+// GetEventByShortCode is a single lookup on the unique short_code index. The code is a bind
+// parameter, and the comparison is case-sensitive because base62 codes are.
+func (r *PostgresRepository) GetEventByShortCode(ctx context.Context, code string) (PublicRecord, error) {
+	var (
+		rec       PublicRecord
+		shot      sql.NullInt32
+		revealAt  sql.NullTime
+		expiresAt sql.NullTime
+	)
+	err := r.db.QueryRowContext(ctx,
+		`SELECT e.event_id, e.short_code, e.name, e.event_date::text, e.timezone, e.category_code, c.theme_key,
+		        e.status, e.shot_limit, e.reveal_mode, e.reveal_at, e.expires_at
+		   FROM events e
+		   JOIN event_categories c ON c.code = e.category_code
+		  WHERE e.short_code = $1`, code).
+		Scan(&rec.EventID, &rec.ShortCode, &rec.Name, &rec.EventDate, &rec.Timezone, &rec.CategoryCode, &rec.ThemeKey,
+			&rec.Status, &shot, &rec.RevealMode, &revealAt, &expiresAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return PublicRecord{}, ErrNotFound
+	}
+	if err != nil {
+		return PublicRecord{}, fmt.Errorf("get event by short code: %w", err)
+	}
+	rec.ShotLimit = nullableInt(shot)
+	if revealAt.Valid {
+		t := revealAt.Time
+		rec.RevealAt = &t
+	}
+	if expiresAt.Valid {
+		t := expiresAt.Time
+		rec.ExpiresAt = &t
+	}
+	return rec, nil
 }
 
 // GetEvent filters by both the event id and the owning host in SQL, so another host's event is

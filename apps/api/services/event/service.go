@@ -19,6 +19,7 @@ import (
 
 const (
 	defaultTimezone      = "Asia/Jakarta"
+	statusActive         = "active"
 	revealInstant        = "instant"
 	revealDelayed        = "delayed"
 	maxNameRunes         = 200
@@ -31,6 +32,9 @@ const (
 )
 
 var (
+	// shortCodePattern is the exact shape of a generated short code (8 base62 characters).
+	shortCodePattern = regexp.MustCompile(`^[0-9A-Za-z]{8}$`)
+
 	uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
 	// categoryOrder is the display order from FSD 4.1; unknown codes follow alphabetically.
@@ -45,6 +49,9 @@ type Options struct {
 
 	NewShortCode   func() (string, error)
 	NewAccessToken func() (string, error)
+
+	// Now supplies the current time for expiry checks. Defaults to time.Now; injectable for tests.
+	Now func() time.Time
 }
 
 // Service implements the event use cases. Every method that touches a specific event takes the
@@ -65,6 +72,9 @@ func NewService(repo Repository, opts Options) *Service {
 	}
 	if opts.NewAccessToken == nil {
 		opts.NewAccessToken = randomAccessToken
+	}
+	if opts.Now == nil {
+		opts.Now = time.Now
 	}
 	return &Service{repo: repo, opts: opts}
 }
@@ -190,6 +200,31 @@ func (s *Service) GetEvent(ctx context.Context, hostID, eventID string) (Event, 
 		return Event{}, err
 	}
 	return s.toEvent(rec), nil
+}
+
+// ResolveShortCode turns a short code into the guest-safe view of its event. It is public: the code
+// itself is the shared secret. Anything that is not a live event returns ErrNotFound with no way to
+// tell the reasons apart: a malformed code (rejected before any query), an unknown or wrongly-cased
+// code, an event that is not active (draft or expired), or one whose expiry has passed.
+func (s *Service) ResolveShortCode(ctx context.Context, code string) (PublicEvent, error) {
+	if !shortCodePattern.MatchString(code) {
+		return PublicEvent{}, ErrNotFound
+	}
+	rec, err := s.repo.GetEventByShortCode(ctx, code)
+	if err != nil {
+		return PublicEvent{}, err
+	}
+	if rec.Status != statusActive {
+		return PublicEvent{}, ErrNotFound
+	}
+	if rec.ExpiresAt != nil && !s.opts.Now().Before(*rec.ExpiresAt) {
+		return PublicEvent{}, ErrNotFound
+	}
+	return PublicEvent{
+		EventID: rec.EventID, ShortCode: rec.ShortCode, Name: rec.Name, EventDate: rec.EventDate,
+		Timezone: rec.Timezone, CategoryCode: rec.CategoryCode, ThemeKey: rec.ThemeKey, Status: rec.Status,
+		ShotLimit: rec.ShotLimit, RevealMode: rec.RevealMode, RevealAt: rec.RevealAt,
+	}, nil
 }
 
 // QRCode renders the event's short link as a QR image, for the owning host only.

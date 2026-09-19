@@ -63,6 +63,23 @@ type Event struct {
 	CreatedAt    time.Time
 }
 
+// PublicEvent is what a guest may learn from a short link: enough to render the welcome screen and
+// start a session, and nothing about the owner, billing or storage. It deliberately has no host id,
+// access token, package, created_at or expiry field.
+type PublicEvent struct {
+	EventID      string
+	ShortCode    string
+	Name         string
+	EventDate    string // YYYY-MM-DD
+	Timezone     string
+	CategoryCode string
+	ThemeKey     string
+	Status       string
+	ShotLimit    *int // nil = unlimited
+	RevealMode   string
+	RevealAt     *time.Time
+}
+
 // CreateInput is what a host supplies. Pointer fields are optional overrides: nil means "use the default".
 type CreateInput struct {
 	CategoryCode string
