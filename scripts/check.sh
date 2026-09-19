@@ -12,18 +12,21 @@ if [ -z "${TEST_DATABASE_URL:-}" ]; then
   exit 1
 fi
 
-echo "==> Go: format check"
-unformatted="$(gofmt -l cmd internal services 2>/dev/null || true)"
+echo "==> Go (apps/api): format check"
+unformatted="$(cd apps/api && gofmt -l cmd internal services gen 2>/dev/null || true)"
 if [ -n "$unformatted" ]; then
   echo "gofmt needed on:" >&2
   echo "$unformatted" >&2
   exit 1
 fi
 
-echo "==> Go: vet, lint, test"
-go vet ./...
-golangci-lint run
-go test ./... -cover
+echo "==> Go (apps/api): vet, lint, test (unit, gRPC handlers, migrations)"
+(
+  cd apps/api
+  go vet ./...
+  golangci-lint run
+  go test ./... -cover
+)
 
 echo "==> Web: check, test"
 (

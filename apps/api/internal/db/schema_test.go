@@ -12,7 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 
-	"github.com/Briyantama/SELA/db"
+	"github.com/Briyantama/SELA/internal/db"
 	"github.com/Briyantama/SELA/internal/testdb"
 )
 

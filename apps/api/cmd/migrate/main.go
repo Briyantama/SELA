@@ -17,7 +17,7 @@ import (
 	// Registers the "pgx" database/sql driver.
 	_ "github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/Briyantama/SELA/db"
+	"github.com/Briyantama/SELA/internal/db"
 )
 
 const (
