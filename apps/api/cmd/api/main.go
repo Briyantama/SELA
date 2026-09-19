@@ -1,25 +1,34 @@
-// Command api runs the Sela HTTP API. Milestone 1 wires only the health endpoint;
-// auth and event routes are added by later tasks.
+// Command api runs the Sela API: HTTP (REST) and gRPC servers over the same services.
+// Configuration comes from environment variables (see internal/config); run
+// `go run ./cmd/migrate` first to apply the database migrations.
 package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/Briyantama/SELA/internal/health"
+	// Registers the "pgx" database/sql driver.
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/redis/go-redis/v9"
+
+	"github.com/Briyantama/SELA/internal/config"
+	"github.com/Briyantama/SELA/services/auth"
 )
 
 const (
-	defaultPort     = "8080"
 	readTimeout     = 10 * time.Second
 	writeTimeout    = 15 * time.Second
 	shutdownTimeout = 10 * time.Second
+	connectTimeout  = 10 * time.Second
 )
 
 func main() {
@@ -30,40 +39,114 @@ func main() {
 }
 
 func run() error {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	cfg, err := config.Load(os.Getenv)
+	if err != nil {
+		return err
 	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/healthz", health.Handler())
-
-	srv := &http.Server{
-		Addr:         ":" + port,
-		Handler:      mux,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-	}
+	slog.Info("starting api", "config", cfg.String())
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	errCh := make(chan error, 1)
+	conn, err := connectPostgres(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	rdb, err := connectRedis(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer rdb.Close()
+
+	svc := auth.NewService(
+		auth.NewRedisStore(rdb),
+		auth.NewPostgresHosts(conn),
+		auth.NewSMTPMailer(auth.SMTPConfig{
+			Addr:     cfg.SMTPAddr,
+			From:     cfg.SMTPFrom,
+			Username: cfg.SMTPUsername,
+			Password: cfg.SMTPPassword,
+		}),
+		auth.Options{HMACKey: cfg.OTPHMACKey},
+	)
+
+	httpSrv := &http.Server{
+		Addr:         ":" + cfg.HTTPPort,
+		Handler:      newMux(auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})),
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+	}
+	grpcSrv := newGRPCServer(svc)
+	grpcListener, err := net.Listen("tcp", ":"+cfg.GRPCPort)
+	if err != nil {
+		return fmt.Errorf("listen for grpc: %w", err)
+	}
+
+	errCh := make(chan error, 2)
 	go func() {
-		slog.Info("api listening", "addr", srv.Addr)
-		errCh <- srv.ListenAndServe()
+		slog.Info("http listening", "addr", httpSrv.Addr)
+		if err := httpSrv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			errCh <- fmt.Errorf("http server: %w", err)
+		}
+	}()
+	go func() {
+		slog.Info("grpc listening", "addr", grpcListener.Addr().String())
+		if err := grpcSrv.Serve(grpcListener); err != nil {
+			errCh <- fmt.Errorf("grpc server: %w", err)
+		}
 	}()
 
 	select {
 	case err := <-errCh:
-		if !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
-		return nil
+		grpcSrv.Stop()
+		_ = httpSrv.Close()
+		return err
 	case <-ctx.Done():
 		slog.Info("shutting down")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-		defer cancel()
-		return srv.Shutdown(shutdownCtx)
+		return shutdown(httpSrv, grpcSrv.GracefulStop)
 	}
+}
+
+func shutdown(httpSrv *http.Server, stopGRPC func()) error {
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		stopGRPC()
+		close(done)
+	}()
+	err := httpSrv.Shutdown(ctx)
+	select {
+	case <-done:
+	case <-ctx.Done():
+	}
+	return err
+}
+
+func connectPostgres(ctx context.Context, dsn string) (*sql.DB, error) {
+	conn, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("open postgres: %w", err)
+	}
+	pingCtx, cancel := context.WithTimeout(ctx, connectTimeout)
+	defer cancel()
+	if err := conn.PingContext(pingCtx); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("connect to postgres: %w", err)
+	}
+	return conn, nil
+}
+
+func connectRedis(ctx context.Context, cfg config.Config) (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr, Password: cfg.RedisPassword})
+	pingCtx, cancel := context.WithTimeout(ctx, connectTimeout)
+	defer cancel()
+	if err := rdb.Ping(pingCtx).Err(); err != nil {
+		_ = rdb.Close()
+		return nil, fmt.Errorf("connect to redis: %w", err)
+	}
+	return rdb, nil
 }
