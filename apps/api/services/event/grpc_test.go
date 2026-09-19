@@ -116,7 +116,7 @@ func TestGRPCCreateEvent_createsForTheAuthenticatedHost(t *testing.T) {
 	if ev.ShotLimit == nil || ev.GetShotLimit() != 30 || ev.GetRevealMode() != eventv1.RevealMode_REVEAL_MODE_DELAYED || ev.GetRevealAt() == nil {
 		t.Errorf("settings = %v", ev)
 	}
-	if ev.GetShortLink() != baseURL+"/"+ev.GetShortCode() || ev.GetQrPngUrl() != "/api/v1/events/"+ev.GetEventId()+"/qr.png" || ev.GetQrSvgUrl() != "/api/v1/events/"+ev.GetEventId()+"/qr.svg" {
+	if ev.GetShortLink() != baseURL+"/e/"+ev.GetShortCode() || ev.GetQrPngUrl() != "/api/v1/events/"+ev.GetEventId()+"/qr.png" || ev.GetQrSvgUrl() != "/api/v1/events/"+ev.GetEventId()+"/qr.svg" {
 		t.Errorf("links = %q %q %q", ev.GetShortLink(), ev.GetQrPngUrl(), ev.GetQrSvgUrl())
 	}
 	if ev.GetCreatedAt() == nil || ev.GetCreatedAt().AsTime().IsZero() {

@@ -185,8 +185,8 @@ func TestCreateEvent_aMinimalRequestGetsSafeDefaultsAndLinks(t *testing.T) {
 	if !base62Code.MatchString(ev.ShortCode) {
 		t.Errorf("short code %q is not 8 base62 characters", ev.ShortCode)
 	}
-	if ev.ShortLink != baseURL+"/"+ev.ShortCode {
-		t.Errorf("short link = %q, want %q", ev.ShortLink, baseURL+"/"+ev.ShortCode)
+	if ev.ShortLink != baseURL+"/e/"+ev.ShortCode {
+		t.Errorf("short link = %q, want %q", ev.ShortLink, baseURL+"/e/"+ev.ShortCode)
 	}
 	if ev.QRPNGURL != "/api/v1/events/"+ev.ID+"/qr.png" || ev.QRSVGURL != "/api/v1/events/"+ev.ID+"/qr.svg" {
 		t.Errorf("QR URLs = %q, %q", ev.QRPNGURL, ev.QRSVGURL)

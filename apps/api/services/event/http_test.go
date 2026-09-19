@@ -202,7 +202,7 @@ func TestHTTPCreateEvent_createsForTheAuthenticatedHost(t *testing.T) {
 	if got.ShotLimit == nil || *got.ShotLimit != 30 || got.RevealMode != "delayed" || got.RevealAt == nil {
 		t.Errorf("settings = shot:%v reveal:%s at:%v", got.ShotLimit, got.RevealMode, got.RevealAt)
 	}
-	if got.ShortLink != baseURL+"/"+got.ShortCode || got.QRPNGURL != "/api/v1/events/"+got.EventID+"/qr.png" {
+	if got.ShortLink != baseURL+"/e/"+got.ShortCode || got.QRPNGURL != "/api/v1/events/"+got.EventID+"/qr.png" {
 		t.Errorf("links = %q, %q", got.ShortLink, got.QRPNGURL)
 	}
 	if loc := rec.Header().Get("Location"); loc != "/api/v1/events/"+got.EventID {
