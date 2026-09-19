@@ -179,6 +179,8 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 		"PORT":          httpPort,
 		"GRPC_PORT":     grpcPort,
 		"COOKIE_SECURE": "false",
+
+		"SHORT_LINK_BASE_URL": "https://sela.example.test",
 	}
 	getenv := func(k string) string { return env[k] }
 
@@ -268,6 +270,8 @@ func TestRun_failsWhenPostgresIsUnreachable(t *testing.T) {
 		"SMTP_ADDR":    "127.0.0.1:1",
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
+
+		"SHORT_LINK_BASE_URL": "https://sela.example.test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -289,6 +293,8 @@ func TestRun_failsWhenRedisIsUnreachable(t *testing.T) {
 		"SMTP_ADDR":    "127.0.0.1:1",
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
+
+		"SHORT_LINK_BASE_URL": "https://sela.example.test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()

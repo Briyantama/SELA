@@ -21,6 +21,67 @@ func fullEnv() map[string]string {
 		"SMTP_ADDR":      "127.0.0.1:1025",
 		"SMTP_FROM":      "no-reply@sela.test",
 		"OTP_HMAC_KEY":   testHMACKey,
+
+		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+	}
+}
+
+func TestLoad_readsAndNormalizesTheShortLinkBaseURL(t *testing.T) {
+	tests := []struct{ name, raw, want string }{
+		{"plain", "https://sela.example.test", "https://sela.example.test"},
+		{"trailing slash is trimmed", "https://sela.example.test/", "https://sela.example.test"},
+		{"path prefix is kept", "https://sela.example.test/e/", "https://sela.example.test/e"},
+		{"http for local development", "http://localhost:5173", "http://localhost:5173"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			env := fullEnv()
+			env["SHORT_LINK_BASE_URL"] = tc.raw
+
+			// Act
+			cfg, err := config.Load(envFrom(env))
+
+			// Assert
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.ShortLinkBaseURL != tc.want {
+				t.Errorf("ShortLinkBaseURL = %q, want %q", cfg.ShortLinkBaseURL, tc.want)
+			}
+		})
+	}
+}
+
+func TestLoad_rejectsAnInvalidShortLinkBaseURLWithoutEchoingIt(t *testing.T) {
+	tests := []struct{ name, raw string }{
+		{"no scheme", "sela.example.test"},
+		{"unsupported scheme", "ftp://sela.example.test"},
+		{"no host", "https://"},
+		{"credentials", "https://user:topsecret@sela.example.test"},
+		{"query", "https://sela.example.test/?utm=1"},
+		{"fragment", "https://sela.example.test/#top"},
+		{"not a url", "::not a url::"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			env := fullEnv()
+			env["SHORT_LINK_BASE_URL"] = tc.raw
+
+			// Act
+			_, err := config.Load(envFrom(env))
+
+			// Assert
+			if err == nil || !strings.Contains(err.Error(), "SHORT_LINK_BASE_URL") {
+				t.Fatalf("err = %v, want it to mention SHORT_LINK_BASE_URL", err)
+			}
+			if strings.Contains(err.Error(), "topsecret") {
+				t.Errorf("error leaks the value: %v", err)
+			}
+		})
 	}
 }
 
@@ -70,7 +131,7 @@ func TestLoad_reportsEveryMissingRequiredVariable(t *testing.T) {
 	if err == nil {
 		t.Fatal("Load with an empty environment returned nil")
 	}
-	for _, name := range []string{"DATABASE_URL", "REDIS_ADDR", "SMTP_ADDR", "SMTP_FROM", "OTP_HMAC_KEY"} {
+	for _, name := range []string{"DATABASE_URL", "REDIS_ADDR", "SMTP_ADDR", "SMTP_FROM", "OTP_HMAC_KEY", "SHORT_LINK_BASE_URL"} {
 		if !strings.Contains(err.Error(), name) {
 			t.Errorf("error %q should mention %s", err, name)
 		}
