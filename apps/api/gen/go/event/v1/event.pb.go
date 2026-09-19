@@ -189,8 +189,15 @@ type EventCategory struct {
 	RevealDefault    RevealDefault `protobuf:"varint,6,opt,name=reveal_default,json=revealDefault,proto3,enum=sela.event.v1.RevealDefault" json:"reveal_default,omitempty"`
 	// Set only when reveal_default is DELAYED.
 	DefaultRevealDelayHours *int32 `protobuf:"varint,7,opt,name=default_reveal_delay_hours,json=defaultRevealDelayHours,proto3,oneof" json:"default_reveal_delay_hours,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// The values a new event gets when the host overrides nothing: the category default when it is
+	// defined, otherwise the safe fallback (unlimited shots, instant reveal). UIs pre-fill from these.
+	// Unset means unlimited shots.
+	EffectiveShotLimit  *int32     `protobuf:"varint,8,opt,name=effective_shot_limit,json=effectiveShotLimit,proto3,oneof" json:"effective_shot_limit,omitempty"`
+	EffectiveRevealMode RevealMode `protobuf:"varint,9,opt,name=effective_reveal_mode,json=effectiveRevealMode,proto3,enum=sela.event.v1.RevealMode" json:"effective_reveal_mode,omitempty"`
+	// Set only when effective_reveal_mode is DELAYED.
+	EffectiveRevealDelayHours *int32 `protobuf:"varint,10,opt,name=effective_reveal_delay_hours,json=effectiveRevealDelayHours,proto3,oneof" json:"effective_reveal_delay_hours,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *EventCategory) Reset() {
@@ -272,6 +279,27 @@ func (x *EventCategory) GetDefaultRevealDelayHours() int32 {
 	return 0
 }
 
+func (x *EventCategory) GetEffectiveShotLimit() int32 {
+	if x != nil && x.EffectiveShotLimit != nil {
+		return *x.EffectiveShotLimit
+	}
+	return 0
+}
+
+func (x *EventCategory) GetEffectiveRevealMode() RevealMode {
+	if x != nil {
+		return x.EffectiveRevealMode
+	}
+	return RevealMode_REVEAL_MODE_UNSPECIFIED
+}
+
+func (x *EventCategory) GetEffectiveRevealDelayHours() int32 {
+	if x != nil && x.EffectiveRevealDelayHours != nil {
+		return *x.EffectiveRevealDelayHours
+	}
+	return 0
+}
+
 type Event struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	EventId      string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
@@ -283,11 +311,16 @@ type Event struct {
 	Status    string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	ShortCode string `protobuf:"bytes,7,opt,name=short_code,json=shortCode,proto3" json:"short_code,omitempty"`
 	// Unset means unlimited shots.
-	ShotLimit     *int32                 `protobuf:"varint,8,opt,name=shot_limit,json=shotLimit,proto3,oneof" json:"shot_limit,omitempty"`
-	RevealMode    RevealMode             `protobuf:"varint,9,opt,name=reveal_mode,json=revealMode,proto3,enum=sela.event.v1.RevealMode" json:"reveal_mode,omitempty"`
-	RevealAt      *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=reveal_at,json=revealAt,proto3" json:"reveal_at,omitempty"`
-	Package       string                 `protobuf:"bytes,11,opt,name=package,proto3" json:"package,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ShotLimit  *int32                 `protobuf:"varint,8,opt,name=shot_limit,json=shotLimit,proto3,oneof" json:"shot_limit,omitempty"`
+	RevealMode RevealMode             `protobuf:"varint,9,opt,name=reveal_mode,json=revealMode,proto3,enum=sela.event.v1.RevealMode" json:"reveal_mode,omitempty"`
+	RevealAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=reveal_at,json=revealAt,proto3" json:"reveal_at,omitempty"`
+	Package    string                 `protobuf:"bytes,11,opt,name=package,proto3" json:"package,omitempty"`
+	CreatedAt  *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Guest entry link: the configured short-link base URL + "/" + short_code.
+	ShortLink string `protobuf:"bytes,13,opt,name=short_link,json=shortLink,proto3" json:"short_link,omitempty"`
+	// Owner-only, session-authenticated paths (relative to the API origin) that render the QR code of short_link.
+	QrPngUrl      string `protobuf:"bytes,14,opt,name=qr_png_url,json=qrPngUrl,proto3" json:"qr_png_url,omitempty"`
+	QrSvgUrl      string `protobuf:"bytes,15,opt,name=qr_svg_url,json=qrSvgUrl,proto3" json:"qr_svg_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -406,6 +439,27 @@ func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Event) GetShortLink() string {
+	if x != nil {
+		return x.ShortLink
+	}
+	return ""
+}
+
+func (x *Event) GetQrPngUrl() string {
+	if x != nil {
+		return x.QrPngUrl
+	}
+	return ""
+}
+
+func (x *Event) GetQrSvgUrl() string {
+	if x != nil {
+		return x.QrSvgUrl
+	}
+	return ""
+}
+
 type ListEventCategoriesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -493,6 +547,7 @@ type CreateEventRequest struct {
 	// Calendar date in YYYY-MM-DD.
 	EventDate string `protobuf:"bytes,3,opt,name=event_date,json=eventDate,proto3" json:"event_date,omitempty"`
 	// The settings below are optional overrides; unset means "use the category default".
+	// shot_limit: a positive number limits shots per guest; an explicit 0 means unlimited.
 	ShotLimit        *int32      `protobuf:"varint,4,opt,name=shot_limit,json=shotLimit,proto3,oneof" json:"shot_limit,omitempty"`
 	RevealMode       *RevealMode `protobuf:"varint,5,opt,name=reveal_mode,json=revealMode,proto3,enum=sela.event.v1.RevealMode,oneof" json:"reveal_mode,omitempty"`
 	RevealDelayHours *int32      `protobuf:"varint,6,opt,name=reveal_delay_hours,json=revealDelayHours,proto3,oneof" json:"reveal_delay_hours,omitempty"`
@@ -708,7 +763,7 @@ var File_v1_event_proto protoreflect.FileDescriptor
 
 const file_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x0ev1/event.proto\x12\rsela.event.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x93\x03\n" +
+	"\x0ev1/event.proto\x12\rsela.event.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x99\x05\n" +
 	"\rEventCategory\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
@@ -716,9 +771,15 @@ const file_v1_event_proto_rawDesc = "" +
 	"\x12shot_limit_default\x18\x04 \x01(\x0e2\x1f.sela.event.v1.ShotLimitDefaultR\x10shotLimitDefault\x121\n" +
 	"\x12default_shot_limit\x18\x05 \x01(\x05H\x00R\x10defaultShotLimit\x88\x01\x01\x12C\n" +
 	"\x0ereveal_default\x18\x06 \x01(\x0e2\x1c.sela.event.v1.RevealDefaultR\rrevealDefault\x12@\n" +
-	"\x1adefault_reveal_delay_hours\x18\a \x01(\x05H\x01R\x17defaultRevealDelayHours\x88\x01\x01B\x15\n" +
+	"\x1adefault_reveal_delay_hours\x18\a \x01(\x05H\x01R\x17defaultRevealDelayHours\x88\x01\x01\x125\n" +
+	"\x14effective_shot_limit\x18\b \x01(\x05H\x02R\x12effectiveShotLimit\x88\x01\x01\x12M\n" +
+	"\x15effective_reveal_mode\x18\t \x01(\x0e2\x19.sela.event.v1.RevealModeR\x13effectiveRevealMode\x12D\n" +
+	"\x1ceffective_reveal_delay_hours\x18\n" +
+	" \x01(\x05H\x03R\x19effectiveRevealDelayHours\x88\x01\x01B\x15\n" +
 	"\x13_default_shot_limitB\x1d\n" +
-	"\x1b_default_reveal_delay_hours\"\xca\x03\n" +
+	"\x1b_default_reveal_delay_hoursB\x17\n" +
+	"\x15_effective_shot_limitB\x1f\n" +
+	"\x1d_effective_reveal_delay_hours\"\xa5\x04\n" +
 	"\x05Event\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12#\n" +
 	"\rcategory_code\x18\x02 \x01(\tR\fcategoryCode\x12\x12\n" +
@@ -737,7 +798,13 @@ const file_v1_event_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\brevealAt\x12\x18\n" +
 	"\apackage\x18\v \x01(\tR\apackage\x129\n" +
 	"\n" +
-	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\r\n" +
+	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"short_link\x18\r \x01(\tR\tshortLink\x12\x1c\n" +
+	"\n" +
+	"qr_png_url\x18\x0e \x01(\tR\bqrPngUrl\x12\x1c\n" +
+	"\n" +
+	"qr_svg_url\x18\x0f \x01(\tR\bqrSvgUrlB\r\n" +
 	"\v_shot_limit\"\x1c\n" +
 	"\x1aListEventCategoriesRequest\"[\n" +
 	"\x1bListEventCategoriesResponse\x12<\n" +
@@ -814,24 +881,25 @@ var file_v1_event_proto_goTypes = []any{
 var file_v1_event_proto_depIdxs = []int32{
 	0,  // 0: sela.event.v1.EventCategory.shot_limit_default:type_name -> sela.event.v1.ShotLimitDefault
 	1,  // 1: sela.event.v1.EventCategory.reveal_default:type_name -> sela.event.v1.RevealDefault
-	2,  // 2: sela.event.v1.Event.reveal_mode:type_name -> sela.event.v1.RevealMode
-	11, // 3: sela.event.v1.Event.reveal_at:type_name -> google.protobuf.Timestamp
-	11, // 4: sela.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
-	3,  // 5: sela.event.v1.ListEventCategoriesResponse.categories:type_name -> sela.event.v1.EventCategory
-	2,  // 6: sela.event.v1.CreateEventRequest.reveal_mode:type_name -> sela.event.v1.RevealMode
-	4,  // 7: sela.event.v1.CreateEventResponse.event:type_name -> sela.event.v1.Event
-	4,  // 8: sela.event.v1.GetEventResponse.event:type_name -> sela.event.v1.Event
-	5,  // 9: sela.event.v1.EventService.ListEventCategories:input_type -> sela.event.v1.ListEventCategoriesRequest
-	7,  // 10: sela.event.v1.EventService.CreateEvent:input_type -> sela.event.v1.CreateEventRequest
-	9,  // 11: sela.event.v1.EventService.GetEvent:input_type -> sela.event.v1.GetEventRequest
-	6,  // 12: sela.event.v1.EventService.ListEventCategories:output_type -> sela.event.v1.ListEventCategoriesResponse
-	8,  // 13: sela.event.v1.EventService.CreateEvent:output_type -> sela.event.v1.CreateEventResponse
-	10, // 14: sela.event.v1.EventService.GetEvent:output_type -> sela.event.v1.GetEventResponse
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	2,  // 2: sela.event.v1.EventCategory.effective_reveal_mode:type_name -> sela.event.v1.RevealMode
+	2,  // 3: sela.event.v1.Event.reveal_mode:type_name -> sela.event.v1.RevealMode
+	11, // 4: sela.event.v1.Event.reveal_at:type_name -> google.protobuf.Timestamp
+	11, // 5: sela.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	3,  // 6: sela.event.v1.ListEventCategoriesResponse.categories:type_name -> sela.event.v1.EventCategory
+	2,  // 7: sela.event.v1.CreateEventRequest.reveal_mode:type_name -> sela.event.v1.RevealMode
+	4,  // 8: sela.event.v1.CreateEventResponse.event:type_name -> sela.event.v1.Event
+	4,  // 9: sela.event.v1.GetEventResponse.event:type_name -> sela.event.v1.Event
+	5,  // 10: sela.event.v1.EventService.ListEventCategories:input_type -> sela.event.v1.ListEventCategoriesRequest
+	7,  // 11: sela.event.v1.EventService.CreateEvent:input_type -> sela.event.v1.CreateEventRequest
+	9,  // 12: sela.event.v1.EventService.GetEvent:input_type -> sela.event.v1.GetEventRequest
+	6,  // 13: sela.event.v1.EventService.ListEventCategories:output_type -> sela.event.v1.ListEventCategoriesResponse
+	8,  // 14: sela.event.v1.EventService.CreateEvent:output_type -> sela.event.v1.CreateEventResponse
+	10, // 15: sela.event.v1.EventService.GetEvent:output_type -> sela.event.v1.GetEventResponse
+	13, // [13:16] is the sub-list for method output_type
+	10, // [10:13] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_v1_event_proto_init() }
