@@ -2,6 +2,7 @@ package httpx_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,6 +49,33 @@ func TestWriteSuccess_wrapsPayloadInEnvelope(t *testing.T) {
 	if string(env.Data) != `{"event_id":"abc"}` {
 		t.Fatalf("data = %s, want the payload", env.Data)
 	}
+}
+
+func TestWriteSuccess_unencodablePayloadReturns500(t *testing.T) {
+	// Arrange: channels cannot be marshalled to JSON
+	rec := httptest.NewRecorder()
+
+	// Act
+	httpx.WriteSuccess(rec, http.StatusOK, make(chan int))
+
+	// Assert
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+}
+
+type failingWriter struct{ header http.Header }
+
+func (f *failingWriter) Header() http.Header        { return f.header }
+func (f *failingWriter) Write([]byte) (int, error)  { return 0, errors.New("connection closed") }
+func (f *failingWriter) WriteHeader(statusCode int) {}
+
+func TestWriteSuccess_failingWriterDoesNotPanic(t *testing.T) {
+	// Arrange
+	w := &failingWriter{header: http.Header{}}
+
+	// Act + Assert: a dropped client connection must not crash the handler
+	httpx.WriteSuccess(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func TestWriteError_hasNullDataAndMessage(t *testing.T) {
