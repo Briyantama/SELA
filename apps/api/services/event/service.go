@@ -208,7 +208,7 @@ func (s *Service) toEvent(rec Record) Event {
 	return Event{
 		ID: rec.ID, CategoryCode: rec.CategoryCode, Name: rec.Name, EventDate: rec.EventDate,
 		Timezone: rec.Timezone, Status: rec.Status, ShortCode: rec.ShortCode,
-		ShortLink: s.opts.ShortLinkBaseURL + "/" + rec.ShortCode,
+		ShortLink: s.opts.ShortLinkBaseURL + "/e/" + rec.ShortCode,
 		QRPNGURL:  "/api/v1/events/" + rec.ID + "/qr.png",
 		QRSVGURL:  "/api/v1/events/" + rec.ID + "/qr.svg",
 		ShotLimit: rec.ShotLimit, RevealMode: rec.RevealMode, RevealAt: rec.RevealAt,
