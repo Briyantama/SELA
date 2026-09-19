@@ -2,12 +2,9 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"math"
-	"mime"
 	"net"
 	"net/http"
 	"strconv"
@@ -29,10 +26,6 @@ const (
 	msgLocked       = "too many failed attempts"
 	msgDelivery     = "could not send the code"
 	msgUnauthorized = "authentication required"
-	msgBodyTooLarge = "request body too large"
-	msgBodyEmpty    = "request body is empty"
-	msgBodyInvalid  = "invalid request body"
-	msgContentType  = "content type must be application/json"
 )
 
 // HTTPConfig configures the HTTP adapter.
@@ -90,7 +83,7 @@ func (h *HTTPHandler) requestOTP(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Email string `json:"email"`
 	}
-	if !decodeJSON(w, r, &body) {
+	if !httpx.DecodeJSON(w, r, &body, maxBodyBytes) {
 		return
 	}
 
@@ -109,7 +102,7 @@ func (h *HTTPHandler) verifyOTP(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 		Code  string `json:"code"`
 	}
-	if !decodeJSON(w, r, &body) {
+	if !httpx.DecodeJSON(w, r, &body, maxBodyBytes) {
 		return
 	}
 
@@ -162,37 +155,6 @@ func (h *HTTPHandler) writeError(w http.ResponseWriter, err error) {
 		slog.Error("auth request failed", "error", err)
 		httpx.WriteError(w, http.StatusInternalServerError, msgInternal)
 	}
-}
-
-// decodeJSON reads a strict, size-limited JSON body into dst and writes the error response itself on failure.
-func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
-	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || mediaType != "application/json" {
-		httpx.WriteError(w, http.StatusUnsupportedMediaType, msgContentType)
-		return false
-	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(dst); err != nil {
-		var tooLarge *http.MaxBytesError
-		switch {
-		case errors.As(err, &tooLarge):
-			httpx.WriteError(w, http.StatusRequestEntityTooLarge, msgBodyTooLarge)
-		case errors.Is(err, io.EOF):
-			httpx.WriteError(w, http.StatusBadRequest, msgBodyEmpty)
-		default:
-			httpx.WriteError(w, http.StatusBadRequest, msgBodyInvalid)
-		}
-		return false
-	}
-	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		httpx.WriteError(w, http.StatusBadRequest, msgBodyInvalid)
-		return false
-	}
-	return true
 }
 
 // clientAddr identifies the caller by its connection address. Forwarded headers are deliberately
