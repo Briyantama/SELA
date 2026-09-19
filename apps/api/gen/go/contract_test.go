@@ -103,6 +103,26 @@ func TestCreateEventRequest_optionalSettingsHavePresence(t *testing.T) {
 	}
 }
 
+func TestEvent_carriesTheShortLinkAndQRURLs(t *testing.T) {
+	msg := (&eventv1.Event{}).ProtoReflect()
+
+	for _, name := range []string{"short_link", "qr_png_url", "qr_svg_url"} {
+		field(t, msg, name)
+	}
+}
+
+func TestEventCategory_exposesTheEffectiveDefaultsAfterFallbacks(t *testing.T) {
+	// UIs pre-fill the create form from these, so undefined (tbd) defaults are already resolved.
+	msg := (&eventv1.EventCategory{}).ProtoReflect()
+
+	field(t, msg, "effective_reveal_mode")
+	for _, name := range []string{"effective_shot_limit", "effective_reveal_delay_hours"} {
+		if !field(t, msg, name).HasPresence() {
+			t.Errorf("EventCategory.%s must track presence (unset = unlimited / not delayed)", name)
+		}
+	}
+}
+
 func TestCreateEventRequest_hasNoHostIdentity(t *testing.T) {
 	// The owner comes from the authenticated session, never from the request body (FSD 3.4).
 	msg := (&eventv1.CreateEventRequest{}).ProtoReflect()
