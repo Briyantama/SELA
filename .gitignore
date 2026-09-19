@@ -1,0 +1,6 @@
+﻿.claude/
+*.md
+*.pdf
+!README.md
+docs/
+.env
