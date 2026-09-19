@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -112,6 +113,44 @@ func TestRun_rejectsBadInput(t *testing.T) {
 				t.Fatalf("err = %v, want it to mention %q", err, tc.wantMsg)
 			}
 		})
+	}
+}
+
+func TestRun_reportsAMigrationThatFails(t *testing.T) {
+	// Arrange: a table the first migration wants to create already exists, outside goose's bookkeeping.
+	url := testdb.NewURL(t)
+	conn, err := sql.Open("pgx", url)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer conn.Close()
+	if _, err := conn.Exec(`CREATE TABLE hosts (id integer)`); err != nil {
+		t.Fatalf("seed conflicting table: %v", err)
+	}
+
+	// Act
+	runErr := run(context.Background(), []string{"up"}, env(url), &bytes.Buffer{})
+
+	// Assert
+	if runErr == nil {
+		t.Fatal("run up over a conflicting table returned nil, want an error")
+	}
+}
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("stdout closed") }
+
+func TestRun_reportsAFailedWriteToTheOutput(t *testing.T) {
+	// Arrange
+	url := testdb.NewURL(t)
+
+	// Act
+	err := run(context.Background(), []string{"up"}, env(url), failingWriter{})
+
+	// Assert
+	if err == nil {
+		t.Fatal("run with a failing writer returned nil, want an error")
 	}
 }
 
