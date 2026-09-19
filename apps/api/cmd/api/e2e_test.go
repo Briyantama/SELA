@@ -16,9 +16,13 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	authv1 "github.com/Briyantama/SELA/gen/go/auth/v1"
+	eventv1 "github.com/Briyantama/SELA/gen/go/event/v1"
 	"github.com/Briyantama/SELA/internal/db"
 	"github.com/Briyantama/SELA/internal/testdb"
 )
@@ -155,6 +159,37 @@ func postJSON(t *testing.T, url, body string) *http.Response {
 	return resp
 }
 
+func getWith(t *testing.T, url string, cookie *http.Cookie) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	if cookie != nil {
+		req.AddCookie(cookie)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	return resp
+}
+
+func postJSONWith(t *testing.T, url string, cookie *http.Cookie, body string) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookie)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("POST %s: %v", url, err)
+	}
+	return resp
+}
+
 func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing.T) {
 	// Arrange: real Postgres, in-process Redis and SMTP.
 	dbURL := testdb.NewURL(t)
@@ -215,18 +250,85 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	if resp.StatusCode != http.StatusOK || !verified.Success || !verified.Data.IsNewHost {
 		t.Fatalf("verify status = %d, body = %+v", resp.StatusCode, verified)
 	}
-	var sessionSet bool
+	var hostCookie *http.Cookie
 	for _, c := range resp.Cookies() {
 		if c.Name == "sela_session" && c.HttpOnly && c.Value != "" {
-			sessionSet = true
+			hostCookie = c
 		}
 	}
-	if !sessionSet {
-		t.Error("no HttpOnly session cookie on the verify response")
+	if hostCookie == nil {
+		t.Fatal("no HttpOnly session cookie on the verify response")
 	}
 	var stored int
 	if err := conn.QueryRow(`SELECT count(*) FROM hosts WHERE host_id = $1 AND email = 'e2e@example.test'`, verified.Data.HostID).Scan(&stored); err != nil || stored != 1 {
 		t.Errorf("host row count = %d, %v; want 1", stored, err)
+	}
+
+	// Task 4: categories are public; creating and reading events needs the session cookie.
+	catsResp := getWith(t, base+"/api/v1/event-categories", nil)
+	catsResp.Body.Close()
+	if catsResp.StatusCode != http.StatusOK {
+		t.Fatalf("categories status = %d", catsResp.StatusCode)
+	}
+
+	createResp := postJSONWith(t, base+"/api/v1/events", hostCookie,
+		`{"category_code":"ulang_tahun","name":"E2E Party","event_date":"2026-12-05"}`)
+	var created struct {
+		Success bool `json:"success"`
+		Data    struct {
+			EventID   string `json:"event_id"`
+			ShortLink string `json:"short_link"`
+			QRPNGURL  string `json:"qr_png_url"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(createResp.Body).Decode(&created); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+	createResp.Body.Close()
+	if createResp.StatusCode != http.StatusCreated || !created.Success || !strings.HasPrefix(created.Data.ShortLink, "https://sela.example.test/") {
+		t.Fatalf("create status = %d body = %+v", createResp.StatusCode, created)
+	}
+	var storedOwner string
+	if err := conn.QueryRow(`SELECT host_id FROM events WHERE event_id = $1`, created.Data.EventID).Scan(&storedOwner); err != nil || storedOwner != verified.Data.HostID {
+		t.Errorf("event owner = %q (%v), want the signed-in host %q", storedOwner, err, verified.Data.HostID)
+	}
+
+	eventURL := base + "/api/v1/events/" + created.Data.EventID
+	for name, tc := range map[string]struct {
+		url    string
+		cookie *http.Cookie
+		want   int
+	}{
+		"owner reads the event":      {eventURL, hostCookie, http.StatusOK},
+		"no session is rejected":     {eventURL, nil, http.StatusUnauthorized},
+		"owner fetches the QR image": {base + created.Data.QRPNGURL, hostCookie, http.StatusOK},
+	} {
+		r := getWith(t, tc.url, tc.cookie)
+		r.Body.Close()
+		if r.StatusCode != tc.want {
+			t.Errorf("%s: status = %d, want %d", name, r.StatusCode, tc.want)
+		}
+	}
+
+	// A second host signs in and cannot see the first host's event.
+	postJSON(t, base+"/api/v1/auth/otp/request", `{"email":"second@example.test"}`).Body.Close()
+	secondVerify := postJSON(t, base+"/api/v1/auth/otp/verify", fmt.Sprintf(`{"email":"second@example.test","code":"%s"}`, smtpSrv.lastCode(t)))
+	secondVerify.Body.Close()
+	var secondCookie *http.Cookie
+	for _, c := range secondVerify.Cookies() {
+		if c.Name == "sela_session" {
+			secondCookie = c
+		}
+	}
+	if secondCookie == nil {
+		t.Fatal("the second host got no session cookie")
+	}
+	for name, url := range map[string]string{"event": eventURL, "qr": base + created.Data.QRPNGURL} {
+		r := getWith(t, url, secondCookie)
+		r.Body.Close()
+		if r.StatusCode != http.StatusNotFound {
+			t.Errorf("another host's %s status = %d, want 404", name, r.StatusCode)
+		}
 	}
 
 	// The gRPC server answers on its own port.
@@ -238,6 +340,31 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	gres, err := authv1.NewAuthServiceClient(gconn).RequestOtp(context.Background(), &authv1.RequestOtpRequest{Email: "grpc@example.test"})
 	if err != nil || gres.GetExpiresInSeconds() != 300 {
 		t.Errorf("grpc RequestOtp = (%v, %v)", gres, err)
+	}
+
+	// gRPC sign-in returns the session token, which authorizes EventService calls as a Bearer token.
+	gverify, err := authv1.NewAuthServiceClient(gconn).VerifyOtp(context.Background(), &authv1.VerifyOtpRequest{Email: "grpc@example.test", Code: smtpSrv.lastCode(t)})
+	if err != nil || gverify.GetSessionToken() == "" {
+		t.Fatalf("grpc VerifyOtp = (%v, %v)", gverify, err)
+	}
+	events := eventv1.NewEventServiceClient(gconn)
+	authed := metadata.AppendToOutgoingContext(context.Background(), "authorization", "Bearer "+gverify.GetSessionToken())
+
+	if cats, err := events.ListEventCategories(context.Background(), &eventv1.ListEventCategoriesRequest{}); err != nil || len(cats.GetCategories()) != 6 {
+		t.Errorf("public grpc categories = (%v, %v)", cats, err)
+	}
+	if _, err := events.CreateEvent(context.Background(), &eventv1.CreateEventRequest{CategoryCode: "ulang_tahun", Name: "No token", EventDate: "2026-12-05"}); status.Code(err) != codes.Unauthenticated {
+		t.Errorf("grpc CreateEvent without a token = %v, want Unauthenticated", err)
+	}
+	gcreated, err := events.CreateEvent(authed, &eventv1.CreateEventRequest{CategoryCode: "ulang_tahun", Name: "gRPC Party", EventDate: "2026-12-05"})
+	if err != nil || !strings.HasPrefix(gcreated.GetEvent().GetShortLink(), "https://sela.example.test/") {
+		t.Fatalf("grpc CreateEvent = (%v, %v)", gcreated, err)
+	}
+	if got, err := events.GetEvent(authed, &eventv1.GetEventRequest{EventId: gcreated.GetEvent().GetEventId()}); err != nil || got.GetEvent().GetName() != "gRPC Party" {
+		t.Errorf("grpc GetEvent (own) = (%v, %v)", got, err)
+	}
+	if _, err := events.GetEvent(authed, &eventv1.GetEventRequest{EventId: created.Data.EventID}); status.Code(err) != codes.NotFound {
+		t.Errorf("grpc GetEvent of another host's event = %v, want NotFound", err)
 	}
 
 	// Shutdown: cancelling the context stops both servers and run returns nil.
