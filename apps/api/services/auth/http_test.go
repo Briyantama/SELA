@@ -326,10 +326,14 @@ func TestHTTPInternalErrors_areGeneric(t *testing.T) {
 		verifyErr:  errors.New("pq: password authentication failed for user sela"),
 	}
 	mux := newMux(flow, true)
+	bodies := map[string]string{
+		requestPath: `{"email":"host@example.test"}`,
+		verifyPath:  `{"email":"host@example.test","code":"111111"}`,
+	}
 
-	for _, path := range []string{requestPath, verifyPath} {
+	for path, body := range bodies {
 		// Act
-		rec := post(t, mux, path, `{"email":"host@example.test","code":"111111"}`)
+		rec := post(t, mux, path, body)
 
 		// Assert
 		if rec.Code != http.StatusInternalServerError {
