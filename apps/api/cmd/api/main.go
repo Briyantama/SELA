@@ -32,21 +32,23 @@ const (
 )
 
 func main() {
-	if err := run(); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := run(ctx, os.Getenv); err != nil {
 		slog.Error("api exited with error", "error", err)
+		stop()
 		os.Exit(1)
 	}
 }
 
-func run() error {
-	cfg, err := config.Load(os.Getenv)
+// run serves HTTP and gRPC until ctx is cancelled, then shuts both down gracefully.
+func run(ctx context.Context, getenv func(string) string) error {
+	cfg, err := config.Load(getenv)
 	if err != nil {
 		return err
 	}
 	slog.Info("starting api", "config", cfg.String())
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	conn, err := connectPostgres(ctx, cfg.DatabaseURL)
 	if err != nil {
