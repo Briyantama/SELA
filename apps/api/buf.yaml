@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: api/proto
+lint:
+  use:
+    - STANDARD
+  except:
+    # Protos live in api/proto/v1 (one directory per API version), not one directory per package,
+    # and each service keeps its own proto package (sela.auth.v1, sela.event.v1).
+    - PACKAGE_DIRECTORY_MATCH
+    - DIRECTORY_SAME_PACKAGE
+breaking:
+  use:
+    - FILE

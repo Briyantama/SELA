@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package sela.auth.v1;
+
+option go_package = "github.com/Briyantama/SELA/gen/go/auth/v1;authv1";
+
+// AuthService signs event hosts in with an email one-time code (FSD 4.1, 8.6).
+// Guests never authenticate; they use scoped event tokens.
+service AuthService {
+  // RequestOtp emails a 6-digit code to the address. The response is identical
+  // whether or not the address is already registered.
+  rpc RequestOtp(RequestOtpRequest) returns (RequestOtpResponse);
+
+  // VerifyOtp checks the code, creates the host on first sign-in, and returns a session.
+  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse);
+}
+
+message RequestOtpRequest {
+  string email = 1;
+}
+
+message RequestOtpResponse {
+  // How long the code stays valid.
+  int32 expires_in_seconds = 1;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string code = 2;
+}
+
+message VerifyOtpResponse {
+  // Opaque, revocable session token. The HTTP API delivers it as an HttpOnly cookie
+  // and never in a response body; gRPC callers receive it here.
+  string session_token = 1;
+  string host_id = 2;
+  bool is_new_host = 3;
+  int32 session_expires_in_seconds = 4;
+}

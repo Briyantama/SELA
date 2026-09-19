@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package sela.event.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Briyantama/SELA/gen/go/event/v1;eventv1";
+
+// EventService manages events owned by the authenticated host (FSD 4.1, 6).
+// The owning host always comes from the session, never from a request field.
+service EventService {
+  rpc ListEventCategories(ListEventCategoriesRequest) returns (ListEventCategoriesResponse);
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse);
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+}
+
+// Whether a category preselects a shot limit. TBD means the product has not defined it yet.
+enum ShotLimitDefault {
+  SHOT_LIMIT_DEFAULT_UNSPECIFIED = 0;
+  SHOT_LIMIT_DEFAULT_UNLIMITED = 1;
+  SHOT_LIMIT_DEFAULT_LIMITED = 2;
+  SHOT_LIMIT_DEFAULT_TBD = 3;
+}
+
+// Whether a category preselects a reveal mode. TBD means the product has not defined it yet.
+enum RevealDefault {
+  REVEAL_DEFAULT_UNSPECIFIED = 0;
+  REVEAL_DEFAULT_INSTANT = 1;
+  REVEAL_DEFAULT_DELAYED = 2;
+  REVEAL_DEFAULT_TBD = 3;
+}
+
+enum RevealMode {
+  REVEAL_MODE_UNSPECIFIED = 0;
+  REVEAL_MODE_INSTANT = 1;
+  REVEAL_MODE_DELAYED = 2;
+}
+
+// A category is a preset (theme and defaults), never a feature gate.
+message EventCategory {
+  string code = 1;
+  string name = 2;
+  string theme_key = 3;
+  ShotLimitDefault shot_limit_default = 4;
+  // Set only when shot_limit_default is LIMITED.
+  optional int32 default_shot_limit = 5;
+  RevealDefault reveal_default = 6;
+  // Set only when reveal_default is DELAYED.
+  optional int32 default_reveal_delay_hours = 7;
+}
+
+message Event {
+  string event_id = 1;
+  string category_code = 2;
+  string name = 3;
+  // Calendar date in YYYY-MM-DD.
+  string event_date = 4;
+  string timezone = 5;
+  string status = 6;
+  string short_code = 7;
+  // Unset means unlimited shots.
+  optional int32 shot_limit = 8;
+  RevealMode reveal_mode = 9;
+  google.protobuf.Timestamp reveal_at = 10;
+  string package = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
+
+message ListEventCategoriesRequest {}
+
+message ListEventCategoriesResponse {
+  repeated EventCategory categories = 1;
+}
+
+message CreateEventRequest {
+  string category_code = 1;
+  string name = 2;
+  // Calendar date in YYYY-MM-DD.
+  string event_date = 3;
+  // The settings below are optional overrides; unset means "use the category default".
+  optional int32 shot_limit = 4;
+  optional RevealMode reveal_mode = 5;
+  optional int32 reveal_delay_hours = 6;
+}
+
+message CreateEventResponse {
+  Event event = 1;
+}
+
+message GetEventRequest {
+  string event_id = 1;
+}
+
+message GetEventResponse {
+  Event event = 1;
+}

@@ -12,6 +12,9 @@ if [ -z "${TEST_DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+echo "==> Proto: lint and generated-code drift"
+bash scripts/proto-gen.sh --check
+
 echo "==> Go (apps/api): format check"
 unformatted="$(cd apps/api && gofmt -l cmd internal services gen 2>/dev/null || true)"
 if [ -n "$unformatted" ]; then
