@@ -4,6 +4,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -35,6 +36,10 @@ type Config struct {
 
 	// CookieSecure marks the session cookie Secure. Only disable for plain-HTTP local development.
 	CookieSecure bool
+
+	// ShortLinkBaseURL is the public origin (plus optional path prefix) that event short links and
+	// QR codes point to, without a trailing slash. It is configurable so the domain can change (D4).
+	ShortLinkBaseURL string
 }
 
 // Load reads and validates the configuration, reporting every problem at once.
@@ -80,6 +85,14 @@ func Load(getenv func(string) string) (Config, error) {
 		cfg.OTPHMACKey = []byte(key)
 	}
 
+	if raw := required("SHORT_LINK_BASE_URL"); raw != "" {
+		base, ok := normalizeBaseURL(raw)
+		if !ok {
+			problems = append(problems, "SHORT_LINK_BASE_URL must be an absolute http or https URL without credentials, query or fragment")
+		}
+		cfg.ShortLinkBaseURL = base
+	}
+
 	if raw := getenv("COOKIE_SECURE"); raw != "" {
 		secure, err := strconv.ParseBool(raw)
 		if err != nil {
@@ -94,10 +107,26 @@ func Load(getenv func(string) string) (Config, error) {
 	return cfg, nil
 }
 
+// normalizeBaseURL accepts an absolute http(s) URL with no credentials, query or fragment and
+// returns it without a trailing slash.
+func normalizeBaseURL(raw string) (string, bool) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", false
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil {
+		return "", false
+	}
+	if u.RawQuery != "" || u.Fragment != "" || strings.ContainsAny(raw, "?#") {
+		return "", false
+	}
+	return strings.TrimRight(raw, "/"), true
+}
+
 // String summarizes the configuration with every secret redacted.
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"Config{http=:%s grpc=:%s redis=%s smtp=%s from=%s cookieSecure=%t database=[redacted] redisPassword=[redacted] smtpPassword=[redacted] otpKey=[redacted]}",
-		c.HTTPPort, c.GRPCPort, c.RedisAddr, c.SMTPAddr, c.SMTPFrom, c.CookieSecure,
+		"Config{http=:%s grpc=:%s redis=%s smtp=%s from=%s shortLinkBase=%s cookieSecure=%t database=[redacted] redisPassword=[redacted] smtpPassword=[redacted] otpKey=[redacted]}",
+		c.HTTPPort, c.GRPCPort, c.RedisAddr, c.SMTPAddr, c.SMTPFrom, c.ShortLinkBaseURL, c.CookieSecure,
 	)
 }
