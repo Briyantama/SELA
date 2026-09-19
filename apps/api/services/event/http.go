@@ -88,14 +88,10 @@ type eventJSON struct {
 	CreatedAt    string  `json:"created_at"`
 }
 
+// toCategoryJSON is a plain conversion on purpose: categoryJSON mirrors Category field for field,
+// so adding a field to Category without deciding how it is exposed stops the build.
 func toCategoryJSON(c Category) categoryJSON {
-	return categoryJSON{
-		Code: c.Code, Name: c.Name, ThemeKey: c.ThemeKey,
-		ShotLimitDefault: c.ShotLimitDefault, DefaultShotLimit: c.DefaultShotLimit,
-		RevealDefault: c.RevealDefault, DefaultRevealDelayHours: c.DefaultRevealDelayHours,
-		EffectiveShotLimit: c.EffectiveShotLimit, EffectiveRevealMode: c.EffectiveRevealMode,
-		EffectiveRevealDelayHours: c.EffectiveRevealDelayHours,
-	}
+	return categoryJSON(c)
 }
 
 func toEventJSON(e Event) eventJSON {

@@ -27,7 +27,7 @@ echo "==> Go (apps/api): vet, lint, test (unit, gRPC handlers, migrations)"
 (
   cd apps/api
   go vet ./...
-  golangci-lint run
+  golangci-lint run --timeout 5m
   go test ./... -cover
 )
 
