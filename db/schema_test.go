@@ -134,6 +134,41 @@ func TestUp_isIdempotent(t *testing.T) {
 	}
 }
 
+func TestUpAndDown_reportAnErrorOnAClosedConnection(t *testing.T) {
+	// Arrange
+	conn := testdb.New(t)
+	if err := conn.Close(); err != nil {
+		t.Fatalf("close connection: %v", err)
+	}
+	ctx := context.Background()
+
+	// Act
+	upErr := db.Up(ctx, conn)
+	downErr := db.Down(ctx, conn)
+
+	// Assert
+	if upErr == nil {
+		t.Error("Up on a closed connection returned nil, want an error")
+	}
+	if downErr == nil {
+		t.Error("Down on a closed connection returned nil, want an error")
+	}
+}
+
+func TestUpAndDown_rejectANilConnection(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+
+	// Act
+	upErr := db.Up(ctx, nil)
+	downErr := db.Down(ctx, nil)
+
+	// Assert
+	if upErr == nil || downErr == nil {
+		t.Fatalf("Up/Down with a nil connection: up=%v down=%v, want both to fail", upErr, downErr)
+	}
+}
+
 func TestDown_removesEverythingAndUpRestoresIt(t *testing.T) {
 	// Arrange
 	conn := migrated(t)
