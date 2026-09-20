@@ -14,10 +14,10 @@ export default defineConfig(({ mode }) => ({
 			}
 		}
 	},
-	resolve: {
-		// Svelte 5 components must resolve to their client build to mount in tests.
-		conditions: mode === 'test' ? ['browser'] : []
-	},
+	// Svelte 5 components must resolve to their client build to mount in tests. Outside tests leave
+	// this unset: an explicit list replaces Vite's defaults, and without "browser" Svelte resolves to
+	// its server build, where onMount never runs (see src/config.test.ts).
+	resolve: mode === 'test' ? { conditions: ['browser'] } : undefined,
 	test: {
 		include: ['src/**/*.test.ts'],
 		setupFiles: ['src/test-setup.ts'],
