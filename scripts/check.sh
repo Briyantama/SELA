@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs the full local validation: Go (format, vet, lint, tests + coverage) and web (type check, tests + coverage).
+# Runs the full local validation: Go (format, vet, lint, tests + coverage), web (type check, tests + coverage)
+# and the real-stack end-to-end run (scripts/e2e.sh; set SKIP_E2E=1 to skip it explicitly).
 # The web app needs Node >= 20.19 (Vite 8). Run from the repo root.
 set -euo pipefail
 
@@ -38,4 +39,15 @@ echo "==> Web: check, test"
   npm run test:coverage
 )
 
-echo "All checks passed."
+# Real-stack end-to-end run (live OTP sign-in and the host happy path). It needs Docker with Redis and
+# Mailpit up (see scripts/e2e.sh) and the installed Google Chrome. It fails loudly when those are
+# missing; skipping is an explicit choice that is announced here and again in the final line.
+if [ "${SKIP_E2E:-}" = "1" ]; then
+  echo "==> E2E: SKIPPED (SKIP_E2E=1)" >&2
+  echo "!!! The live OTP flow and the host happy path were NOT verified by this run." >&2
+  echo "All checks passed (E2E skipped)."
+else
+  echo "==> E2E: real API, Redis, Mailpit and Playwright"
+  bash scripts/e2e.sh
+  echo "All checks passed."
+fi
