@@ -44,7 +44,8 @@ var (
 // Options configures the Service. ShortLinkBaseURL is required; the generators default to
 // cryptographically random values and are injectable for tests.
 type Options struct {
-	// ShortLinkBaseURL is the public base (no trailing slash) that short links and QR codes point to.
+	// ShortLinkBaseURL is the public base (no trailing slash) that short links and QR codes point to;
+	// a link is ShortLinkBaseURL + "/e/" + code.
 	ShortLinkBaseURL string
 
 	NewShortCode   func() (string, error)
