@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
 	},
 	test: {
 		include: ['src/**/*.test.ts'],
+		setupFiles: ['src/test-setup.ts'],
 		// Component tests opt in with a `// @vitest-environment jsdom` docblock.
 		environment: 'node',
 		coverage: {
