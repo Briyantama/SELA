@@ -34,9 +34,12 @@ export function describePolicy(event: Pick<EventView, 'shot_limit' | 'reveal_mod
 
 	let reveal = 'Reveal langsung';
 	if (event.reveal_mode === 'delayed') {
-		reveal = event.reveal_at
-			? `Reveal tertunda, dibuka ${momentFormat.format(new Date(event.reveal_at))} WIB`
-			: 'Reveal tertunda';
+		const at = event.reveal_at ? new Date(event.reveal_at) : undefined;
+		// A malformed timestamp must not make Intl throw and blank the page during render.
+		reveal =
+			at && !Number.isNaN(at.getTime())
+				? `Reveal tertunda, dibuka ${momentFormat.format(at)} WIB`
+				: 'Reveal tertunda';
 	}
 	return `${shots} · ${reveal}`;
 }

@@ -1,9 +1,13 @@
 import { ApiError, unwrapEnvelope } from './envelope';
 
+const DEFAULT_TIMEOUT_MS = 15_000;
+
 export interface ApiRequest {
 	method?: 'GET' | 'POST';
 	/** Serialised as JSON. */
 	body?: unknown;
+	/** The request is aborted, and fails with status 0, if the response is not complete by then. */
+	timeoutMs?: number;
 }
 
 /** Only a positive whole number of seconds is a usable Retry-After. */
@@ -22,28 +26,38 @@ function parseRetryAfter(value: string | null): number | undefined {
  */
 export async function apiFetch<T>(path: string, request: ApiRequest = {}): Promise<T> {
 	const headers = new Headers({ Accept: 'application/json' });
+	const controller = new AbortController();
 	const init: RequestInit = {
 		method: request.method ?? 'GET',
 		credentials: 'include',
-		headers
+		headers,
+		signal: controller.signal
 	};
 	if (request.body !== undefined) {
 		headers.set('Content-Type', 'application/json');
 		init.body = JSON.stringify(request.body);
 	}
 
+	// A stalled mobile connection must not leave a form disabled forever.
+	const timer = setTimeout(() => controller.abort(), request.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 	let response: Response;
-	try {
-		response = await fetch(path, init);
-	} catch {
-		throw new ApiError('Network request failed', 0);
-	}
-
 	let parsed: unknown;
 	try {
-		parsed = await response.json();
-	} catch {
-		throw new ApiError('Unexpected response from server', response.status);
+		try {
+			response = await fetch(path, init);
+		} catch {
+			throw new ApiError('Network request failed', 0);
+		}
+		try {
+			parsed = await response.json();
+		} catch {
+			throw new ApiError(
+				controller.signal.aborted ? 'Network request failed' : 'Unexpected response from server',
+				controller.signal.aborted ? 0 : response.status
+			);
+		}
+	} finally {
+		clearTimeout(timer);
 	}
 
 	try {

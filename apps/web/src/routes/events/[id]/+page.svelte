@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { ApiError } from '$lib/api/envelope';
 	import { getEvent, qrUrl, type EventView } from '$lib/api/events';
 	import CopyButton from '$lib/components/CopyButton.svelte';
@@ -15,15 +15,23 @@
 	let notFound = $state(false);
 	let qrFailed = $state(false);
 
-	async function load() {
+	let latestRequest = 0;
+
+	async function load(id: string) {
+		// The same component instance serves /events/A then /events/B, so start from a clean slate
+		// and ignore a slower response that belongs to an id the host has already left.
+		const request = ++latestRequest;
+		event = undefined;
 		error = '';
 		notFound = false;
+		qrFailed = false;
 		try {
-			event = await getEvent(data.id);
+			const loaded = await getEvent(id);
+			if (request === latestRequest) event = loaded;
 		} catch (err) {
+			if (request !== latestRequest) return;
 			if (err instanceof ApiError && err.status === 401) {
-				const here = `/events/${encodeURIComponent(data.id)}`;
-				await goto(`/auth/login?next=${encodeURIComponent(here)}`);
+				await goto(`/auth/login?next=${encodeURIComponent(`/events/${encodeURIComponent(id)}`)}`);
 				return;
 			}
 			notFound = err instanceof ApiError && err.status === 404;
@@ -31,7 +39,10 @@
 		}
 	}
 
-	onMount(load);
+	$effect(() => {
+		const id = data.id;
+		untrack(() => load(id));
+	});
 </script>
 
 <svelte:head>
@@ -90,7 +101,7 @@
 		{#if notFound}
 			<a class="btn btn-primary" href="/events/new">Buat acara baru</a>
 		{:else}
-			<button class="btn" type="button" onclick={load}>Coba lagi</button>
+			<button class="btn" type="button" onclick={() => load(data.id)}>Coba lagi</button>
 		{/if}
 	</div>
 {:else}

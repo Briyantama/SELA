@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { ApiError } from '$lib/api/envelope';
-	import { createEvent, listCategories, type Category } from '$lib/api/events';
+	import { createEvent, listCategories, type Category, type EventView } from '$lib/api/events';
 	import CategoryPicker from '$lib/components/CategoryPicker.svelte';
 	import {
 		buildCreateBody,
@@ -31,9 +31,29 @@
 	let submitError = $state('');
 	let advancedOpen = $state(false);
 	let busy = $state(false);
+	/** Set once the event exists, so the form cannot create a second one. */
+	let createdId = $state('');
+	let detailsFor = '';
 
 	const category = $derived(categories?.find((c) => c.code === selected));
 	const effectiveMode = $derived(values.revealMode || category?.effective_reveal_mode);
+
+	// The delay field is hidden unless the reveal is delayed; a value typed earlier must not linger
+	// unseen (it would fail validation or be sent with an instant reveal).
+	$effect(() => {
+		if (effectiveMode !== 'delayed' && values.revealDelayHours !== '') values.revealDelayHours = '';
+	});
+
+	function chooseCategory() {
+		// Overrides are tuned to one category's defaults; name and date carry over.
+		if (selected !== detailsFor) {
+			values = { ...values, shotLimit: '', revealMode: '', revealDelayHours: '' };
+			errors = {};
+			advancedOpen = false;
+			detailsFor = selected;
+		}
+		step = 'details';
+	}
 
 	async function loadCategories() {
 		loadError = '';
@@ -48,7 +68,7 @@
 
 	async function submit(event: SubmitEvent) {
 		event.preventDefault();
-		if (busy || !category) return;
+		if (busy || createdId || !category) return;
 
 		submitError = '';
 		errors = validateEventForm(values, category);
@@ -59,17 +79,27 @@
 		}
 
 		busy = true;
+		let created: EventView;
 		try {
-			const created = await createEvent(buildCreateBody(category.code, values));
-			await goto(`/events/${encodeURIComponent(created.event_id)}`);
+			created = await createEvent(buildCreateBody(category.code, values));
 		} catch (err) {
+			busy = false;
 			if (err instanceof ApiError && err.status === 401) {
 				await goto(`/auth/login?next=${encodeURIComponent(NEW_EVENT_PATH)}`);
 				return;
 			}
 			submitError = describeEventError(err);
-		} finally {
-			busy = false;
+			return;
+		}
+
+		// From here the event exists. Opening it is a separate step: if it fails, the host gets a
+		// link instead of a form that would create a duplicate.
+		createdId = created.event_id;
+		busy = false;
+		try {
+			await goto(`/events/${encodeURIComponent(created.event_id)}`);
+		} catch {
+			// The "Buka acara" link below is the fallback.
 		}
 	}
 </script>
@@ -98,7 +128,7 @@
 					class="btn btn-primary"
 					type="button"
 					disabled={!category}
-					onclick={() => (step = 'details')}>Lanjut</button
+					onclick={chooseCategory}>Lanjut</button
 				>
 			{/if}
 		</section>
@@ -192,9 +222,16 @@
 			</details>
 
 			{#if submitError}<p class="alert" role="alert">{submitError}</p>{/if}
+			{#if createdId}
+				<p class="notice">
+					Acara sudah dibuat. <a href={`/events/${encodeURIComponent(createdId)}`}>Buka acara</a>
+				</p>
+			{/if}
 
 			<div class="actions">
-				<button class="btn btn-primary" type="submit" disabled={busy}>Buat acara</button>
+				<button class="btn btn-primary" type="submit" disabled={busy || createdId !== ''}
+					>Buat acara</button
+				>
 				<button class="btn btn-quiet" type="button" onclick={() => (step = 'category')}>Kembali</button>
 			</div>
 		</form>

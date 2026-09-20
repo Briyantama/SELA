@@ -37,6 +37,7 @@
 
 	async function submitEmail(event: SubmitEvent) {
 		event.preventDefault();
+		if (busy) return;
 		error = '';
 		if (!EMAIL_PATTERN.test(email.trim())) {
 			error = 'Masukkan alamat email yang valid.';
@@ -58,14 +59,17 @@
 
 	async function submitCode(event: SubmitEvent) {
 		event.preventDefault();
+		if (busy) return;
 		error = '';
-		if (!CODE_PATTERN.test(code)) {
+		// Codes are often pasted with a space in the middle or around them.
+		const digits = code.replace(/\s/g, '');
+		if (!CODE_PATTERN.test(digits)) {
 			error = 'Masukkan 6 digit kode.';
 			return;
 		}
 		busy = true;
 		try {
-			await verifyOtp(email, code);
+			await verifyOtp(email, digits);
 			await goto(safeNextPath(page.url.searchParams.get('next')));
 		} catch (err) {
 			fail(err);
@@ -92,7 +96,7 @@
 		<p class="lede">Kami kirim kode 6 digit ke email Anda. Tanpa kata sandi.</p>
 	</header>
 
-	<section class="card stack" aria-live="polite">
+	<section class="card stack">
 		{#if step === 'email'}
 			<form class="stack" novalidate onsubmit={submitEmail}>
 				<div class="field">
@@ -122,7 +126,6 @@
 						class="code-input"
 						inputmode="numeric"
 						autocomplete="one-time-code"
-						maxlength="6"
 						placeholder="000000"
 						bind:this={codeInput}
 						bind:value={code}
