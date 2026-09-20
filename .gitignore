@@ -4,3 +4,5 @@
 !README.md
 .env
 coverage/
+test-results/
+playwright-report/

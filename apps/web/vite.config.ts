@@ -19,7 +19,8 @@ export default defineConfig(({ mode }) => ({
 	// its server build, where onMount never runs (see src/config.test.ts).
 	resolve: mode === 'test' ? { conditions: ['browser'] } : undefined,
 	test: {
-		include: ['src/**/*.test.ts'],
+		// Playwright specs (tests/e2e/**/*.spec.ts) are run by `npm run test:e2e`, not by vitest.
+		include: ['src/**/*.test.ts', 'tests/**/*.unit.test.ts'],
 		setupFiles: ['src/test-setup.ts'],
 		// Component tests opt in with a `// @vitest-environment jsdom` docblock.
 		environment: 'node',
