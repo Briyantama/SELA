@@ -7,7 +7,9 @@ import { createEvent, getEvent, listCategories, qrUrl } from './events';
 
 const fetchMock = vi.mocked(apiFetch);
 
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+	fetchMock.mockReset();
+});
 
 describe('listCategories', () => {
 	it('gets the public category list and unwraps the categories array', async () => {

@@ -7,7 +7,9 @@ import { requestOtp, verifyOtp } from './auth';
 
 const fetchMock = vi.mocked(apiFetch);
 
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+	fetchMock.mockReset();
+});
 
 describe('requestOtp', () => {
 	it('posts the email to the OTP request endpoint and returns the expiry', async () => {
@@ -44,9 +46,17 @@ describe('verifyOtp', () => {
 
 	it('propagates the client error', async () => {
 		// Arrange
-		fetchMock.mockRejectedValue(new Error('boom'));
+		fetchMock.mockImplementation(async () => {
+			throw new Error('boom');
+		});
 
-		// Act + Assert
-		await expect(verifyOtp('a@b.test', '000000')).rejects.toThrow('boom');
+		// Act
+		const outcome = await verifyOtp('a@b.test', '000000').then(
+			() => 'resolved',
+			(err: unknown) => (err as Error).message
+		);
+
+		// Assert
+		expect(outcome).toBe('boom');
 	});
 });
