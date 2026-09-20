@@ -26,6 +26,7 @@ type Events interface {
 	CreateEvent(ctx context.Context, hostID string, in CreateInput) (Event, error)
 	GetEvent(ctx context.Context, hostID, eventID string) (Event, error)
 	QRCode(ctx context.Context, hostID, eventID string, format QRFormat) ([]byte, string, error)
+	ResolveShortCode(ctx context.Context, code string) (PublicEvent, error)
 }
 
 var _ Events = (*Service)(nil)
@@ -35,8 +36,9 @@ type HostGuard interface {
 	RequireHost(next http.Handler) http.Handler
 }
 
-// HTTPHandler exposes the event use cases as JSON endpoints. Category presets are public; every
-// route that creates or reads a specific event sits behind the HostGuard.
+// HTTPHandler exposes the event use cases as JSON endpoints. Category presets and the short-link
+// resolver are public; every route that creates or reads a specific event as its owner sits behind
+// the HostGuard.
 type HTTPHandler struct {
 	events Events
 	guard  HostGuard
@@ -50,6 +52,7 @@ func NewHTTPHandler(events Events, guard HostGuard) *HTTPHandler {
 // Register mounts the event routes on the mux.
 func (h *HTTPHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/event-categories", h.listCategories)
+	mux.HandleFunc("GET /e/{short_code}", h.resolveShortCode)
 	mux.Handle("POST /api/v1/events", h.guard.RequireHost(http.HandlerFunc(h.createEvent)))
 	mux.Handle("GET /api/v1/events/{id}", h.guard.RequireHost(http.HandlerFunc(h.getEvent)))
 	mux.Handle("GET /api/v1/events/{id}/qr.png", h.guard.RequireHost(h.qr(QRPNG)))
@@ -86,6 +89,35 @@ type eventJSON struct {
 	RevealAt     *string `json:"reveal_at"`
 	Package      string  `json:"package"`
 	CreatedAt    string  `json:"created_at"`
+}
+
+// publicEventJSON is what a guest sees behind a short link. It mirrors PublicEvent, which itself
+// has no owner, billing or storage fields.
+type publicEventJSON struct {
+	EventID      string  `json:"event_id"`
+	ShortCode    string  `json:"short_code"`
+	Name         string  `json:"name"`
+	EventDate    string  `json:"event_date"`
+	Timezone     string  `json:"timezone"`
+	CategoryCode string  `json:"category_code"`
+	ThemeKey     string  `json:"theme_key"`
+	Status       string  `json:"status"`
+	ShotLimit    *int    `json:"shot_limit"`
+	RevealMode   string  `json:"reveal_mode"`
+	RevealAt     *string `json:"reveal_at"`
+}
+
+func toPublicEventJSON(e PublicEvent) publicEventJSON {
+	out := publicEventJSON{
+		EventID: e.EventID, ShortCode: e.ShortCode, Name: e.Name, EventDate: e.EventDate,
+		Timezone: e.Timezone, CategoryCode: e.CategoryCode, ThemeKey: e.ThemeKey, Status: e.Status,
+		ShotLimit: e.ShotLimit, RevealMode: e.RevealMode,
+	}
+	if e.RevealAt != nil {
+		at := e.RevealAt.UTC().Format(time.RFC3339)
+		out.RevealAt = &at
+	}
+	return out
 }
 
 // toCategoryJSON is a plain conversion on purpose: categoryJSON mirrors Category field for field,
@@ -167,6 +199,21 @@ func (h *HTTPHandler) getEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteSuccess(w, http.StatusOK, toEventJSON(ev))
+}
+
+// resolveShortCode is public: the code in the QR is the only credential. Every failure to find a
+// usable event answers with the same 404, so a caller cannot tell a missing code from an expired one.
+func (h *HTTPHandler) resolveShortCode(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Robots-Tag", "noindex")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	ev, err := h.events.ResolveShortCode(r.Context(), r.PathValue("short_code"))
+	if err != nil {
+		writeHTTPError(w, err)
+		return
+	}
+	httpx.WriteSuccess(w, http.StatusOK, toPublicEventJSON(ev))
 }
 
 func (h *HTTPHandler) qr(format QRFormat) http.Handler {
