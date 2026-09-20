@@ -52,6 +52,9 @@ func (s stubEvents) GetEvent(context.Context, string, string) (event.Event, erro
 func (s stubEvents) QRCode(context.Context, string, string, event.QRFormat) ([]byte, string, error) {
 	return nil, "", s.err
 }
+func (s stubEvents) ResolveShortCode(context.Context, string) (event.PublicEvent, error) {
+	return event.PublicEvent{}, s.err
+}
 
 func newMux(svc event.Events, tokens map[string]string) *http.ServeMux {
 	guard := auth.NewHTTPHandler(fakeAuth{tokens: tokens}, auth.HTTPConfig{})
@@ -386,6 +389,174 @@ func TestHTTPRoutes_rejectUnsupportedMethods(t *testing.T) {
 			// Assert
 			if rec.Code != http.StatusMethodNotAllowed {
 				t.Fatalf("status = %d, want 405", rec.Code)
+			}
+		})
+	}
+}
+
+type publicEventJSON struct {
+	EventID      string  `json:"event_id"`
+	ShortCode    string  `json:"short_code"`
+	Name         string  `json:"name"`
+	EventDate    string  `json:"event_date"`
+	Timezone     string  `json:"timezone"`
+	CategoryCode string  `json:"category_code"`
+	ThemeKey     string  `json:"theme_key"`
+	Status       string  `json:"status"`
+	ShotLimit    *int    `json:"shot_limit"`
+	RevealMode   string  `json:"reveal_mode"`
+	RevealAt     *string `json:"reveal_at"`
+}
+
+func TestHTTPResolve_isPublicAndReturnsGuestSafeMetadata(t *testing.T) {
+	// Arrange
+	h := newHTTPFixture(t)
+	created := h.createBirthday(t)
+
+	for name, token := range map[string]string{"no session": "", "an invalid session": "nope"} {
+		t.Run(name, func(t *testing.T) {
+			// Act
+			rec := do(h.mux, http.MethodGet, "/e/"+created.ShortCode, token, "")
+
+			// Assert
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, body %s", rec.Code, rec.Body)
+			}
+			got := decode[publicEventJSON](t, rec).Data
+			if got.EventID != created.EventID || got.ShortCode != created.ShortCode || got.Name != "Ulang Tahun" || got.EventDate != "2026-12-05" {
+				t.Errorf("got %+v, want the created event", got)
+			}
+			if got.Timezone != "Asia/Jakarta" || got.CategoryCode != "ulang_tahun" || got.ThemeKey != "birthday" || got.Status != "active" {
+				t.Errorf("got %+v", got)
+			}
+			if got.ShotLimit != nil || got.RevealMode != "instant" || got.RevealAt != nil {
+				t.Errorf("settings = shot:%v reveal:%s at:%v", got.ShotLimit, got.RevealMode, got.RevealAt)
+			}
+			body := rec.Body.String()
+			for _, private := range []string{"host_id", "access_token", "package", "created_at", "qr_png_url", "qr_svg_url", h.owner} {
+				if strings.Contains(body, private) {
+					t.Errorf("public response leaks %q: %s", private, body)
+				}
+			}
+		})
+	}
+}
+
+func TestHTTPResolve_setsSafeHeaders(t *testing.T) {
+	// Arrange
+	h := newHTTPFixture(t)
+	created := h.createBirthday(t)
+
+	// Act
+	rec := do(h.mux, http.MethodGet, "/e/"+created.ShortCode, "", "")
+
+	// Assert
+	want := map[string]string{
+		"Content-Type":           "application/json",
+		"Cache-Control":          "no-store",
+		"X-Robots-Tag":           "noindex",
+		"X-Content-Type-Options": "nosniff",
+	}
+	for header, value := range want {
+		if got := rec.Header().Get(header); got != value {
+			t.Errorf("%s = %q, want %q", header, got, value)
+		}
+	}
+}
+
+func TestHTTPResolve_everyFailureLooksIdentical(t *testing.T) {
+	// Arrange
+	h := newHTTPFixture(t)
+	created := h.createBirthday(t)
+	draft := h.createBirthday(t)
+	if _, err := h.conn.Exec(`UPDATE events SET status = 'draft' WHERE event_id = $1`, draft.EventID); err != nil {
+		t.Fatalf("set status: %v", err)
+	}
+	expired := h.createBirthday(t)
+	if _, err := h.conn.Exec(`UPDATE events SET status = 'expired' WHERE event_id = $1`, expired.EventID); err != nil {
+		t.Fatalf("set status: %v", err)
+	}
+	pastExpiry := h.createBirthday(t)
+	if _, err := h.conn.Exec(`UPDATE events SET expires_at = now() - interval '1 hour' WHERE event_id = $1`, pastExpiry.EventID); err != nil {
+		t.Fatalf("set expiry: %v", err)
+	}
+	baseline := do(h.mux, http.MethodGet, "/e/ZZZZZZZZ", "", "")
+
+	tests := map[string]string{
+		"unknown code":      "ZZZZZZZZ",
+		"wrong case":        strings.ToLower(created.ShortCode) + "x", // still 9 chars: malformed
+		"too short":         "abc",
+		"too long":          "ABCDEFGHIJKL",
+		"injection":         "%27%20OR%20%271%27%3D%271",
+		"draft event":       draft.ShortCode,
+		"expired event":     expired.ShortCode,
+		"past expiry":       pastExpiry.ShortCode,
+		"unicode":           "%C3%85%C3%85%C3%85%C3%85%C3%85%C3%85%C3%85%C3%85",
+		"encoded null byte": "AAAAAAA%00",
+		"path traversal":    "..%2F..%2F..%2F",
+	}
+
+	// Assert the baseline itself is the clean 404 envelope.
+	if baseline.Code != http.StatusNotFound || decode[any](t, baseline).Error == nil || *decode[any](t, baseline).Error != "event not found" {
+		t.Fatalf("baseline = %d %s", baseline.Code, baseline.Body)
+	}
+
+	for name, code := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Act
+			rec := do(h.mux, http.MethodGet, "/e/"+code, "", "")
+
+			// Assert
+			if rec.Code != http.StatusNotFound || rec.Body.String() != baseline.Body.String() {
+				t.Fatalf("got %d %q, want the identical 404 %q", rec.Code, rec.Body, baseline.Body)
+			}
+		})
+	}
+}
+
+func TestHTTPResolve_onlyAcceptsGet(t *testing.T) {
+	// Arrange
+	h := newHTTPFixture(t)
+	created := h.createBirthday(t)
+
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
+		t.Run(method, func(t *testing.T) {
+			// Act
+			rec := do(h.mux, method, "/e/"+created.ShortCode, "owner-token", "")
+
+			// Assert
+			if rec.Code != http.StatusMethodNotAllowed {
+				t.Fatalf("status = %d, want 405", rec.Code)
+			}
+		})
+	}
+}
+
+func TestHTTPResolve_mapsErrorsWithoutLeakingDetails(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		wantStatus int
+		wantMsg    string
+	}{
+		{"not found", event.ErrNotFound, http.StatusNotFound, "event not found"},
+		{"internal", errors.New("pq: password authentication failed for user sela at 10.0.0.5"), http.StatusInternalServerError, "internal error"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			mux := newMux(stubEvents{err: tc.err}, nil)
+
+			// Act
+			rec := do(mux, http.MethodGet, "/e/AbCdEfGh", "", "")
+
+			// Assert
+			if rec.Code != tc.wantStatus || !strings.Contains(rec.Body.String(), tc.wantMsg) {
+				t.Fatalf("status = %d body = %s, want %d containing %q", rec.Code, rec.Body, tc.wantStatus, tc.wantMsg)
+			}
+			if strings.Contains(rec.Body.String(), "password") || strings.Contains(rec.Body.String(), "10.0.0.5") {
+				t.Errorf("response leaks internal detail: %s", rec.Body)
 			}
 		})
 	}

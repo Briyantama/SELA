@@ -52,6 +52,10 @@ func (stubEvents) QRCode(context.Context, string, string, event.QRFormat) ([]byt
 	return []byte("png"), "image/png", nil
 }
 
+func (stubEvents) ResolveShortCode(context.Context, string) (event.PublicEvent, error) {
+	return event.PublicEvent{EventID: "e"}, nil
+}
+
 func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 	// Arrange
 	authHTTP := auth.NewHTTPHandler(stubFlow{}, auth.HTTPConfig{})
