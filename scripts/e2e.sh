@@ -19,16 +19,19 @@ fail() {
   exit 1
 }
 
+# A value the caller exported must win over whatever .env says.
+CALLER_TEST_DATABASE_URL="${TEST_DATABASE_URL:-}"
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
   . ./.env
   set +a
 fi
+[ -z "$CALLER_TEST_DATABASE_URL" ] || TEST_DATABASE_URL="$CALLER_TEST_DATABASE_URL"
 
 : "${TEST_DATABASE_URL:?set TEST_DATABASE_URL, e.g. postgres://postgres@127.0.0.1:5432/postgres?sslmode=disable (PGPASSWORD if needed)}"
 [ -n "${REDIS_PASSWORD:-}" ] || fail "REDIS_PASSWORD is not set; copy .env.example to .env"
-for tool in psql curl docker node go; do
+for tool in psql curl docker node go openssl; do
   command -v "$tool" >/dev/null || fail "$tool not found on PATH"
 done
 
@@ -38,6 +41,13 @@ START_HINT="docker compose --env-file .env -f deploy/docker-compose.yml up -d re
 listening 6379 || fail "Redis is not reachable on 6379. Start it with: $START_HINT"
 listening 1025 || fail "Mailpit SMTP is not reachable on 1025. Start it with: $START_HINT"
 listening 8025 || fail "Mailpit API is not reachable on 8025. Start it with: $START_HINT"
+# The tests reset rate-limit keys through `docker exec` on this container, so the Redis on 6379 must be it.
+# NOTE: that reset clears the API's rate-limit/lockout keys (rl:*, attempts:*, lock:*) on this Redis, which
+# also clears any real dev lockouts; use a Redis you do not mind that on (the compose one).
+E2E_REDIS_CONTAINER="${E2E_REDIS_CONTAINER:-sela-dev-redis-1}"
+docker inspect -f '{{.State.Running}}' "$E2E_REDIS_CONTAINER" 2>/dev/null | grep -q true ||
+  fail "Redis container '$E2E_REDIS_CONTAINER' is not running. Start it with: $START_HINT (or set E2E_REDIS_CONTAINER)"
+export E2E_REDIS_CONTAINER
 
 API_PORT=8081
 GRPC_PORT_E2E=9091
@@ -54,6 +64,11 @@ E2E_DB="sela_e2e_$$"
 API_PID=""
 # Same server, user and options as TEST_DATABASE_URL, with the database name swapped.
 E2E_DB_URL="$(echo "$TEST_DATABASE_URL" | sed -E "s#(://[^/]+)/[^?]*#\1/$E2E_DB#")"
+# If the URL is in a shape sed cannot rewrite, refuse rather than migrate and run against the shared database.
+case "$E2E_DB_URL" in
+  *"/$E2E_DB"*) ;;
+  *) fail "cannot derive a throwaway database URL from TEST_DATABASE_URL; use the form postgres://user@host:port/dbname?options" ;;
+esac
 
 cleanup() {
   status=$?
@@ -96,6 +111,8 @@ for _ in $(seq 1 60); do
   sleep 0.5
 done
 curl -fsS "http://127.0.0.1:$API_PORT/healthz" >/dev/null || fail "the API did not become healthy within 30s"
+# Healthy must mean *our* process: if it died and something else took the port, stop here.
+kill -0 "$API_PID" 2>/dev/null || fail "the API process exited; port $API_PORT is answered by something else"
 
 echo "==> e2e: Playwright (Chrome, web on :$WEB_PORT)"
 export E2E_API_URL="http://127.0.0.1:$API_PORT"

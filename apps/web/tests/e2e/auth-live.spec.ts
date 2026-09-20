@@ -124,7 +124,9 @@ test('locks the address after five wrong codes, even for the right code', async 
 	}
 	const locked = await verify(request, email, code);
 
-	for (const status of wrongStatuses) expect([401, 429]).toContain(status);
+	// The first four wrong codes are plain rejections; the fifth may already report the lockout it causes.
+	expect(wrongStatuses.slice(0, 4)).toEqual([401, 401, 401, 401]);
+	expect([401, 429]).toContain(wrongStatuses[4]);
 	expect(locked.status()).toBe(429);
 	expect((await locked.json()).error).toBe('too many failed attempts');
 	const retryAfter = Number(locked.headers()['retry-after']);

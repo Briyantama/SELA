@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import jsQR from 'jsqr';
 import { PNG } from 'pngjs';
@@ -14,7 +15,9 @@ const TARGET_MS = 180_000;
 const API_URL = process.env.E2E_API_URL ?? 'http://127.0.0.1:8081';
 const EVENT_NAME = 'Pernikahan Sari & Budi';
 const EVENT_DATE = '2026-12-05';
-const SHORT_LINK = /^http:\/\/localhost:5174\/e\/[0-9A-Za-z]{8}$/;
+const WEB_URL = (process.env.E2E_WEB_URL ?? 'http://localhost:5174').replace(/\/$/, '');
+// SHORT_LINK_BASE_URL is the web origin, so a short link is {web}/e/{8-char base62 code}.
+const SHORT_LINK = new RegExp(`^${WEB_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/e/[0-9A-Za-z]{8}$`);
 
 const uniqueEmail = () => `host-${Date.now()}-${randomBytes(3).toString('hex')}@example.test`;
 
@@ -74,7 +77,11 @@ test('a host signs in, creates an event and gets a working short link and QR cod
 
 	// The QR image really loads, from the host-only endpoint, with the session cookie.
 	const qr = page.getByRole('img', { name: `Kode QR untuk ${EVENT_NAME}` });
-	expect(await qr.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+	await expect
+		.poll(() => qr.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0), {
+			message: 'the QR image finished loading'
+		})
+		.toBe(true);
 	const svgResponse = await page.request.get(`/api/v1/events/${eventId}/qr.svg`);
 	expect(svgResponse.status()).toBe(200);
 	expect(svgResponse.headers()['content-type']).toContain('image/svg+xml');
@@ -116,9 +123,11 @@ test('a host signs in, creates an event and gets a working short link and QR cod
 
 	// Timing against the 3-minute target.
 	const report = timer.report();
-	await mkdir('test-results', { recursive: true });
+	// Next to the other Playwright artifacts (apps/web/test-results), whatever the working directory is.
+	const timingFile = join(testInfo.project.outputDir, 'timing.json');
+	await mkdir(testInfo.project.outputDir, { recursive: true });
 	await writeFile(
-		'test-results/timing.json',
+		timingFile,
 		JSON.stringify({ ...report, targetMs: TARGET_MS, measuredAt: new Date().toISOString() }, null, 2)
 	);
 	await testInfo.attach('timing', { body: JSON.stringify(report), contentType: 'application/json' });
