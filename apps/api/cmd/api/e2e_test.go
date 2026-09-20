@@ -310,6 +310,41 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 		}
 	}
 
+	// Task 5: the short link in the QR resolves for anyone, with no session, until the event stops being active.
+	wantLink := "https://sela.example.test/e/"
+	if !strings.HasPrefix(created.Data.ShortLink, wantLink) {
+		t.Fatalf("short link = %q, want prefix %q", created.Data.ShortLink, wantLink)
+	}
+	resolveURL := base + "/e/" + strings.TrimPrefix(created.Data.ShortLink, wantLink)
+	resolved := getWith(t, resolveURL, nil)
+	var guestView struct {
+		Success bool `json:"success"`
+		Data    struct {
+			EventID string `json:"event_id"`
+			Name    string `json:"name"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resolved.Body).Decode(&guestView); err != nil {
+		t.Fatalf("decode resolve response: %v", err)
+	}
+	resolved.Body.Close()
+	if resolved.StatusCode != http.StatusOK || !guestView.Success || guestView.Data.EventID != created.Data.EventID || guestView.Data.Name != "E2E Party" {
+		t.Errorf("resolve status = %d body = %+v, want the created event", resolved.StatusCode, guestView)
+	}
+	if _, err := conn.Exec(`UPDATE events SET status = 'expired' WHERE event_id = $1`, created.Data.EventID); err != nil {
+		t.Fatalf("expire event: %v", err)
+	}
+	for name, url := range map[string]string{"an expired event": resolveURL, "an unknown code": base + "/e/ZZZZZZZZ"} {
+		r := getWith(t, url, nil)
+		r.Body.Close()
+		if r.StatusCode != http.StatusNotFound {
+			t.Errorf("resolving %s status = %d, want 404", name, r.StatusCode)
+		}
+	}
+	if _, err := conn.Exec(`UPDATE events SET status = 'active' WHERE event_id = $1`, created.Data.EventID); err != nil {
+		t.Fatalf("reactivate event: %v", err)
+	}
+
 	// A second host signs in and cannot see the first host's event.
 	postJSON(t, base+"/api/v1/auth/otp/request", `{"email":"second@example.test"}`).Body.Close()
 	secondVerify := postJSON(t, base+"/api/v1/auth/otp/verify", fmt.Sprintf(`{"email":"second@example.test","code":"%s"}`, smtpSrv.lastCode(t)))
