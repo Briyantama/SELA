@@ -1,6 +1,14 @@
 /** Error raised when the API reports a failure or returns a malformed body. */
 export class ApiError extends Error {
-	constructor(message: string) {
+	/**
+	 * @param status HTTP status, or 0 when no response was received or the failure is not HTTP.
+	 * @param retryAfterSeconds seconds the server asked the caller to wait (Retry-After), if any.
+	 */
+	constructor(
+		message: string,
+		readonly status: number = 0,
+		readonly retryAfterSeconds?: number
+	) {
 		super(message);
 		this.name = 'ApiError';
 	}
