@@ -102,10 +102,10 @@
     {
       "milestone": "M1", "id": "T3.8", "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Verify against the real docker-compose Redis and Mailpit (Docker was not running during development)",
-      "module": "deploy, cmd/api", "status": "Pending Verification",
+      "module": "deploy, cmd/api", "status": "Completed",
       "red": "n/a", "green": "n/a", "coverage": "n/a", "frs": "FR-09.1",
-      "deliverables": "Tests so far used in-process Redis (miniredis) and a fake SMTP server; run the stack with docker compose and sign in through Mailpit's inbox once Docker is available",
-      "updated": "2026-09-19"
+      "deliverables": "Verified live on 2026-09-20 against docker compose Redis 7 (password) and Mailpit with the real cmd/api, via apps/web/tests/e2e/auth-live.spec.ts (6 checks, all pass, no service change needed) and the host happy path (sign-in read from the Mailpit inbox). Checked: email delivery and format, wrong/right code, cookie flags, no token in body, single use, hashes-only in Redis, rate limit (429 + Retry-After), lockout after 5 wrong codes.",
+      "updated": "2026-09-20"
     },
     {
       "milestone": "M1", "id": "T3.9", "task": "Task 3: Email OTP Auth for Hosts",
@@ -184,11 +184,30 @@
     },
     {
       "milestone": "M1", "id": "T7.1", "task": "Task 7: Verify milestone outcome",
-      "description": "End-to-end test and timed usability check against the 3-minute target",
-      "module": "apps/web (tests/e2e)", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-01.1, FR-01.2, FR-01.3",
-      "deliverables": "Playwright happy path; median setup time of 3-5 first-time hosts recorded in the PRD metrics",
-      "updated": "2026-09-19"
+      "description": "Real-stack end-to-end test and automated timing against the 3-minute target (the human timing is T7.2)",
+      "module": "apps/web (tests/e2e), scripts/e2e.sh, scripts/check.sh", "status": "Completed",
+      "red": "56159ff 70c75d0 44e0983",
+      "green": "29d31b5 fcdfe29 6037092 96d0a2a 7b11984",
+      "coverage": "n/a for e2e; helper unit tests 17 (168 unit tests total, web coverage 99.7% lines / 90.2% branches); 10 e2e tests pass on the real stack",
+      "frs": "FR-01.1, FR-01.2, FR-01.3, FR-09.1",
+      "deliverables": "Playwright (installed Chrome) against real cmd/api + Postgres + Redis + Mailpit via scripts/e2e.sh, also run by scripts/check.sh: sign-in from the Mailpit inbox, category, form, event, short link, QR PNG decoded back to the link, PNG/SVG downloads, cookie flags, guest resolver, reload, not-found, signed-out bounce. Scripted setup time 2.7-2.8 s warm (8.5 s cold first run) vs the 180 s target. Tooling commits 58b435f, d34c798.",
+      "updated": "2026-09-20"
+    },
+    {
+      "milestone": "M1", "id": "T7.2", "task": "Task 7: Verify milestone outcome",
+      "description": "Human timed usability check: median setup time of 3-5 first-time hosts against the PRD metric (3 minutes or less, no documentation)",
+      "module": "docs/tracking (usability_sessions.csv)", "status": "Pending Verification",
+      "red": "n/a", "green": "n/a", "coverage": "n/a", "frs": "FR-01.1, FR-01.2, FR-01.3",
+      "deliverables": "Protocol in docs/tracking/README.md and an empty session template docs/tracking/usability_sessions.csv exist; no sessions have been run. Needs 3-5 first-time hosts; the median of total_s is compared with 180 s and recorded in the PRD metrics table. Automation (T7.1) cannot stand in for it.",
+      "updated": "2026-09-20"
+    },
+    {
+      "milestone": "M1", "id": "T7.3", "task": "Task 7: Verify milestone outcome",
+      "description": "Docs sync (FSD v2.9) and tracker update for Task 7",
+      "module": "docs (FSD v2.9), docs/tracking, CLAUDE.md", "status": "Completed",
+      "red": "n/a (documentation)", "green": "n/a (FSD/CLAUDE.md are gitignored .md files; the tracker files are versioned)", "coverage": "n/a", "frs": "",
+      "deliverables": "FSD change row, 8.6 live-verification note, 10.1 e2e/timing note, 11.1; tracking README timed-check protocol; this tracker",
+      "updated": "2026-09-20"
     },
     {
       "milestone": "M2", "id": "M2.1", "task": "Milestone 2 (not yet planned)",
@@ -255,6 +274,27 @@
     }
   ],
   "changelog": [
+    {
+      "milestone": "M1", "module": "docs", "task": "T7.3",
+      "summary": "Updated the FSD to v2.9, CLAUDE.md, the tracking README (timed-check protocol) and this tracker for Task 7.",
+      "breaking": "None.",
+      "decisions": "Milestone 1 is complete except T7.2 (human timed sessions), which stays Pending Verification. FR-09.1 stays Partial because SMS OTP is not built. docs/ tracker files are versioned; FSD/PRD/BRD .md and .pdf are still ignored.",
+      "commits": "n/a", "date": "2026-09-20"
+    },
+    {
+      "milestone": "M1", "module": "apps/web (tests/e2e), scripts", "task": "T7.1",
+      "summary": "Added Playwright end-to-end tests that drive Chrome through the Vite proxy to the real API, Postgres, Redis and Mailpit (scripts/e2e.sh), and made scripts/check.sh run them; timed the scripted host flow against the 3-minute target.",
+      "breaking": "scripts/check.sh now needs Docker (Redis + Mailpit up), Chrome and TEST_DATABASE_URL; SKIP_E2E=1 skips the e2e step with a loud notice. Port 8080 is held by an unrelated Apache service on the dev machine, so e2e uses 8081/9091/5174.",
+      "decisions": "Installed Chrome instead of downloading Playwright browsers; e2e uses a throwaway sela_e2e_<pid> database on the local Postgres and resets only rl:/attempts:/lock: keys on the compose Redis; one unique email per test because of the OTP rate limits; the QR PNG is decoded with jsqr to prove it encodes the short link; scripted time is a lower bound and not the PRD metric. A typescript review found no CRITICAL/HIGH; the MEDIUMs (unguarded database-URL rewrite, unchecked Redis container, one-shot QR load check) were fixed in 7b11984. Also added .gitattributes so shell scripts keep LF.",
+      "commits": "58b435f 56159ff 29d31b5 70c75d0 fcdfe29 44e0983 6037092 d34c798 96d0a2a 7b11984", "date": "2026-09-20"
+    },
+    {
+      "milestone": "M1", "module": "deploy, cmd/api", "task": "T3.8",
+      "summary": "Verified the email OTP flow live against docker compose Redis and Mailpit with the real API; all checks passed without service changes.",
+      "breaking": "None.",
+      "decisions": "Verification lives in apps/web/tests/e2e/auth-live.spec.ts so it is repeatable; compose's postgres was not used because a local PostgreSQL 17 owns 5432.",
+      "commits": "n/a (verification; tests in 44e0983)", "date": "2026-09-20"
+    },
     {
       "milestone": "M1", "module": "docs", "task": "T6.2",
       "summary": "Updated the FSD to v2.8 (10.1 implementation note, change row, 11.1 status for FR-01.1, FR-01.2, FR-01.3, FR-09.1), CLAUDE.md and this tracker for Task 6.",
@@ -396,7 +436,7 @@
     "FR-01.4": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2", "evidence": "shot_limit (NULL/0 = unlimited), reveal_mode and reveal_at stored per event; per-category numeric defaults remain tbd pending product"},
     "FR-01.5": {"milestone": "M5", "tasks": "M5.1"},
     "FR-01.6": {"milestone": "M5", "tasks": "M5.1"},
-    "FR-09.1": {"milestone": "M1", "status": "Partial", "tasks": "T3.3, T3.5, T3.6, T3.7, T3.8, T6.1", "evidence": "email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); SMS not implemented; live-infra verification pending"},
+    "FR-09.1": {"milestone": "M1", "status": "Partial", "tasks": "T3.3, T3.5, T3.6, T3.7, T3.8, T6.1, T7.1", "evidence": "email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); verified live against real Redis and Mailpit (T3.8, T7.1); SMS not implemented"},
     "FR-09.2": {"milestone": "M5", "tasks": "M5.1"},
     "FR-09.3": {"milestone": "M5", "tasks": "M5.1"},
     "FR-SEC.4": {"milestone": "M1", "status": "Partial", "tasks": "T3.5, T3.6, T3.10", "evidence": "HttpOnly/SameSite cookie, hashed expiring tokens; refresh and revocation pending"},

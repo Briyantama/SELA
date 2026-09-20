@@ -32,7 +32,7 @@ FR-07.2,Sistem menyediakan aksi sembunyikan/hapus per item media dengan konfirma
 FR-07.3,Sistem menyediakan mekanisme pelaporan konten untuk eskalasi ke admin internal.,4.7,Milestone 4: Moderate and export,Not Started,,
 FR-08.1,Sistem menjadwalkan & mengirim notifikasi email transaksional berbasis event lifecycle.,4.8,Backlog: Should-have and later phases,Not Started,,
 FR-08.2,Sistem mencatat preferensi opt-in/opt-out notifikasi per kontak.,4.8,Backlog: Should-have and later phases,Not Started,,
-FR-09.1,Sistem menyediakan autentikasi berbasis OTP (email/SMS).,4.9,Milestone 1: Host creates an event,Partial,"T3.3, T3.5, T3.6, T3.7, T3.8, T6.1","email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); SMS not implemented; live-infra verification pending"
+FR-09.1,Sistem menyediakan autentikasi berbasis OTP (email/SMS).,4.9,Milestone 1: Host creates an event,Partial,"T3.3, T3.5, T3.6, T3.7, T3.8, T6.1, T7.1","email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); verified live against real Redis and Mailpit (T3.8, T7.1); SMS not implemented"
 FR-09.2,"Sistem mengintegrasikan payment gateway lokal (QRIS, e-wallet, kartu) yang mendukung nominal mikro.",4.9,Milestone 5: Plans and payment,Not Started,M5.1,
 FR-09.3,Sistem mencatat riwayat transaksi & status langganan per host.,4.9,Milestone 5: Plans and payment,Not Started,M5.1,
 FR-10.1,"Sistem menyediakan jalur ""Capture Langsung"" dari halaman utama tanpa mewajibkan pembuatan event.",4.10,Backlog: Should-have and later phases,Not Started,,
