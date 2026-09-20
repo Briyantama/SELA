@@ -111,6 +111,15 @@ describe('login page: code step', () => {
 		expect(authApi.verifyOtp).not.toHaveBeenCalled();
 	});
 
+	it('accepts a code pasted with spaces around or inside the digits', async () => {
+		authApi.verifyOtp.mockResolvedValue({ hostId: 'h1', isNewHost: false });
+		await reachCodeStep();
+
+		await submitCode(' 123 456 ');
+
+		expect(authApi.verifyOtp).toHaveBeenCalledWith(EMAIL, '123456');
+	});
+
 	it('verifies the code and goes to the default page', async () => {
 		authApi.verifyOtp.mockResolvedValue({ hostId: 'h1', isNewHost: false });
 		await reachCodeStep();

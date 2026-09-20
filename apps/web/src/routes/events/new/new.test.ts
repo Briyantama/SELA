@@ -161,6 +161,55 @@ describe('new event: details step', () => {
 		await waitFor(() => expect(screen.queryByLabelText('Jeda reveal (jam)')).not.toBeInTheDocument());
 	});
 
+	it('drops a reveal delay typed earlier once the host switches back to an instant reveal', async () => {
+		render(NewEventPage);
+		await pickCategory(/Ulang Tahun/);
+		await fillDetails();
+		await fireEvent.change(screen.getByLabelText('Mode reveal'), { target: { value: 'delayed' } });
+		await fireEvent.input(screen.getByLabelText('Jeda reveal (jam)'), { target: { value: '24' } });
+		await fireEvent.change(screen.getByLabelText('Mode reveal'), { target: { value: 'instant' } });
+
+		await submit();
+
+		await waitFor(() =>
+			expect(eventsApi.createEvent).toHaveBeenCalledWith({
+				category_code: 'birthday',
+				name: 'Pesta Rani',
+				event_date: '2026-12-05',
+				reveal_mode: 'instant'
+			})
+		);
+	});
+
+	it('keeps the name and date but resets the overrides when another category is chosen', async () => {
+		render(NewEventPage);
+		await pickCategory(/Pernikahan/);
+		await fillDetails();
+		await fireEvent.input(screen.getByLabelText('Batas jepretan per tamu'), { target: { value: '30' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Kembali' }));
+
+		await fireEvent.click(await screen.findByRole('radio', { name: /Ulang Tahun/ }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+
+		expect(await screen.findByLabelText('Nama acara')).toHaveValue('Pesta Rani');
+		expect(screen.getByLabelText('Batas jepretan per tamu')).toHaveValue('');
+	});
+
+	it('does not offer a second create when the event exists but opening it failed', async () => {
+		nav.goto.mockImplementation(async () => {
+			throw new Error('navigation failed');
+		});
+		render(NewEventPage);
+		await pickCategory(/Ulang Tahun/);
+		await fillDetails();
+
+		await submit();
+
+		expect(await screen.findByRole('link', { name: 'Buka acara' })).toHaveAttribute('href', '/events/e1');
+		expect(screen.getByRole('button', { name: 'Buat acara' })).toBeDisabled();
+		expect(eventsApi.createEvent).toHaveBeenCalledTimes(1);
+	});
+
 	it('sends a signed-out host to the login page and back here afterwards', async () => {
 		eventsApi.createEvent.mockRejectedValue(new ApiError('authentication required', 401));
 		render(NewEventPage);

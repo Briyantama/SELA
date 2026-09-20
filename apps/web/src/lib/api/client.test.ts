@@ -16,7 +16,10 @@ function stubFetch(response: Response | Error) {
 	return fn;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+	vi.unstubAllGlobals();
+	vi.useRealTimers();
+});
 
 describe('apiFetch', () => {
 	it('sends credentials and returns the unwrapped data of a success envelope', async () => {
@@ -96,6 +99,43 @@ describe('apiFetch', () => {
 		// Assert
 		expect(err).toBeInstanceOf(ApiError);
 		expect(err.status).toBe(502);
+	});
+
+	it('gives fetch an abort signal so a request can be cancelled', async () => {
+		// Arrange
+		const fetchMock = stubFetch(respond(200, { success: true, data: {}, error: null }));
+
+		// Act
+		await apiFetch('/x');
+
+		// Assert
+		const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+		expect(init.signal).toBeInstanceOf(AbortSignal);
+	});
+
+	it('aborts a request the server never answers and reports status 0', async () => {
+		// Arrange
+		vi.useFakeTimers();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				(_path: string, init: RequestInit) =>
+					new Promise((_resolve, reject) => {
+						init.signal?.addEventListener('abort', () =>
+							reject(new DOMException('aborted', 'AbortError'))
+						);
+					})
+			)
+		);
+
+		// Act
+		const pending = apiFetch('/x', { timeoutMs: 1000 }).catch((e: unknown) => e);
+		await vi.advanceTimersByTimeAsync(1000);
+		const err = (await pending) as ApiError;
+
+		// Assert
+		expect(err).toBeInstanceOf(ApiError);
+		expect(err.status).toBe(0);
 	});
 
 	it('throws an ApiError with status 0 when the network fails', async () => {

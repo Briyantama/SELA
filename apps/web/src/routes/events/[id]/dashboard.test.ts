@@ -56,6 +56,23 @@ describe('event page', () => {
 		expect(screen.getByText(/Reveal tertunda/)).toBeInTheDocument();
 	});
 
+	it('loads the other event when the route id changes and forgets the old QR failure', async () => {
+		eventsApi.getEvent.mockImplementation(async (id: string) => ({
+			...event,
+			event_id: id,
+			name: id === 'e2' ? 'Ulang Tahun Rani' : event.name
+		}));
+		const { rerender } = render(EventPage, { data: { id: 'e1' } });
+		await fireEvent.error(await screen.findByRole('img', { name: 'Kode QR untuk Nikah A & B' }));
+		expect(await screen.findByRole('alert')).toHaveTextContent('Kode QR gagal dimuat.');
+
+		await rerender({ data: { id: 'e2' } });
+
+		expect(await screen.findByRole('heading', { level: 1, name: 'Ulang Tahun Rani' })).toBeInTheDocument();
+		expect(eventsApi.getEvent).toHaveBeenLastCalledWith('e2');
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+	});
+
 	it('shows the short link', async () => {
 		render(EventPage, { data: { id: 'e1' } });
 

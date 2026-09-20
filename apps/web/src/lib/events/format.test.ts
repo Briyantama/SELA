@@ -37,6 +37,12 @@ describe('describePolicy', () => {
 		expect(text).toContain('WIB');
 	});
 
+	it('falls back to a plain delayed reveal when the moment is not a valid date', () => {
+		expect(describePolicy({ shot_limit: null, reveal_mode: 'delayed', reveal_at: 'not-a-date' })).toBe(
+			'Jepretan tak terbatas · Reveal tertunda'
+		);
+	});
+
 	it('describes a delayed reveal that has no moment yet', () => {
 		expect(describePolicy({ shot_limit: null, reveal_mode: 'delayed', reveal_at: null })).toBe(
 			'Jepretan tak terbatas · Reveal tertunda'
