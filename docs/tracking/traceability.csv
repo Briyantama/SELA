@@ -6,7 +6,7 @@ FR-01.4,Sistem menyimpan konfigurasi jumlah jepretan maksimum (termasuk opsi tak
 FR-01.5,"Sistem merekomendasikan paket berdasarkan kategori & estimasi skala acara, namun tetap dapat diubah bebas oleh host.",4.1,Milestone 5: Plans and payment,Not Started,M5.1,
 FR-01.6,"Sistem mengintegrasikan payment gateway untuk paket berbayar, termasuk nominal mikro (QRIS, e-wallet, kartu).",4.1,Milestone 5: Plans and payment,Not Started,M5.1,
 FR-02.1,Sistem memvalidasi token event dari QR/tautan sebelum menampilkan kamera.,4.2,Milestone 2: Guest captures and uploads,Not Started,,
-FR-02.2,Sistem membuat & menyimpan guest session ID unik per perangkat/browser (jika event menerapkan batas jepretan).,4.2,Milestone 2: Guest captures and uploads,Not Started,,
+FR-02.2,Sistem membuat & menyimpan guest session ID unik per perangkat/browser (jika event menerapkan batas jepretan).,4.2,Milestone 2: Guest captures and uploads,Partial,T8.1,"guest_sessions table (one row per device session, optional nickname, no fingerprint); session creation and the guest cookie are not built yet"
 FR-02.3,Sistem menampilkan pesan status sesuai kondisi event (belum mulai/aktif/berakhir).,4.2,Milestone 2: Guest captures and uploads,Not Started,,
 FR-02.4,Sistem menampilkan tema visual kamera sesuai kategori acara terkait.,4.2,Milestone 2: Guest captures and uploads,Not Started,,
 FR-03.1,Sistem menyediakan akses kamera perangkat via Web API (getUserMedia) dengan fallback unggah manual.,4.3,Milestone 2: Guest captures and uploads,Not Started,,
