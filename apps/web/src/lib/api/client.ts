@@ -3,7 +3,7 @@ import { ApiError, unwrapEnvelope } from './envelope';
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export interface ApiRequest {
-	method?: 'GET' | 'POST';
+	method?: 'GET' | 'POST' | 'PATCH';
 	/** Serialised as JSON. */
 	body?: unknown;
 	/** The request is aborted, and fails with status 0, if the response is not complete by then. */
