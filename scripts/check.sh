@@ -13,6 +13,23 @@ if [ -z "${TEST_DATABASE_URL:-}" ]; then
   exit 1
 fi
 
+# The S3 adapter tests run against a real S3-compatible bucket (MinIO from deploy/docker-compose.yml) and
+# skip themselves when TEST_S3_ENDPOINT is unset; default them from the S3_* values in .env, then insist.
+if [ -f .env ]; then
+  S3_ENDPOINT="$(sed -n 's/^S3_ENDPOINT=//p' .env)"
+  S3_BUCKET="$(sed -n 's/^S3_BUCKET=//p' .env)"
+  S3_ACCESS_KEY_ID="$(sed -n 's/^S3_ACCESS_KEY_ID=//p' .env)"
+  S3_SECRET_ACCESS_KEY="$(sed -n 's/^S3_SECRET_ACCESS_KEY=//p' .env)"
+fi
+export TEST_S3_ENDPOINT="${TEST_S3_ENDPOINT:-${S3_ENDPOINT:-}}"
+export TEST_S3_BUCKET="${TEST_S3_BUCKET:-${S3_BUCKET:-}}"
+export TEST_S3_ACCESS_KEY_ID="${TEST_S3_ACCESS_KEY_ID:-${S3_ACCESS_KEY_ID:-}}"
+export TEST_S3_SECRET_ACCESS_KEY="${TEST_S3_SECRET_ACCESS_KEY:-${S3_SECRET_ACCESS_KEY:-}}"
+if [ -z "$TEST_S3_ENDPOINT" ]; then
+  echo "TEST_S3_ENDPOINT (or S3_ENDPOINT in .env) is not set; start MinIO with: docker compose --env-file .env -f deploy/docker-compose.yml up -d minio minio-init" >&2
+  exit 1
+fi
+
 echo "==> Proto: lint and generated-code drift"
 bash scripts/proto-gen.sh --check
 
