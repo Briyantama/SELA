@@ -48,7 +48,7 @@ afterEach(() => {
 
 describe('event page', () => {
 	it('loads the event by the id in the route and shows its details', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Nikah A & B' })).toBeInTheDocument();
 		expect(eventsApi.getEvent).toHaveBeenCalledWith('e1');
@@ -62,11 +62,11 @@ describe('event page', () => {
 			event_id: id,
 			name: id === 'e2' ? 'Ulang Tahun Rani' : event.name
 		}));
-		const { rerender } = render(EventPage, { data: { id: 'e1' } });
+		const { rerender } = render(EventPage, { data: { id: 'e1', profile: null } });
 		await fireEvent.error(await screen.findByRole('img', { name: 'Kode QR untuk Nikah A & B' }));
 		expect(await screen.findByRole('alert')).toHaveTextContent('Kode QR gagal dimuat.');
 
-		await rerender({ data: { id: 'e2' } });
+		await rerender({ data: { id: 'e2', profile: null } });
 
 		expect(await screen.findByRole('heading', { level: 1, name: 'Ulang Tahun Rani' })).toBeInTheDocument();
 		expect(eventsApi.getEvent).toHaveBeenLastCalledWith('e2');
@@ -74,13 +74,13 @@ describe('event page', () => {
 	});
 
 	it('shows the short link', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		expect(await screen.findByText('https://sela.test/e/aB3dE5gH')).toBeInTheDocument();
 	});
 
 	it('shows the QR image from the same-origin SVG endpoint', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		const img = await screen.findByRole('img', { name: 'Kode QR untuk Nikah A & B' });
 
@@ -88,7 +88,7 @@ describe('event page', () => {
 	});
 
 	it('offers PNG and SVG downloads with meaningful file names', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		const png = await screen.findByRole('link', { name: 'Unduh PNG' });
 		const svg = screen.getByRole('link', { name: 'Unduh SVG' });
@@ -100,7 +100,7 @@ describe('event page', () => {
 	});
 
 	it('says so when the QR image cannot be loaded', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 		const img = await screen.findByRole('img', { name: 'Kode QR untuk Nikah A & B' });
 
 		await fireEvent.error(img);
@@ -111,7 +111,7 @@ describe('event page', () => {
 	it('copies the short link and confirms it', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		stubClipboard(writeText);
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Salin tautan' }));
 
@@ -121,7 +121,7 @@ describe('event page', () => {
 
 	it('asks for a manual copy when the clipboard is refused', async () => {
 		stubClipboard(() => Promise.reject(new Error('denied')));
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Salin tautan' }));
 
@@ -129,7 +129,7 @@ describe('event page', () => {
 	});
 
 	it('asks for a manual copy when there is no clipboard API', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		await fireEvent.click(await screen.findByRole('button', { name: 'Salin tautan' }));
 
@@ -137,7 +137,7 @@ describe('event page', () => {
 	});
 
 	it('links to creating another event', async () => {
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		expect(await screen.findByRole('link', { name: 'Buat acara lain' })).toHaveAttribute(
 			'href',
@@ -149,7 +149,7 @@ describe('event page', () => {
 describe('event page failures', () => {
 	it('says the event was not found and offers to create one', async () => {
 		eventsApi.getEvent.mockRejectedValue(new ApiError('event not found', 404));
-		render(EventPage, { data: { id: 'nope' } });
+		render(EventPage, { data: { id: 'nope', profile: null } });
 
 		expect(await screen.findByRole('alert')).toHaveTextContent('Acara tidak ditemukan.');
 		expect(screen.getByRole('link', { name: 'Buat acara baru' })).toHaveAttribute('href', '/events/new');
@@ -157,7 +157,7 @@ describe('event page failures', () => {
 
 	it('sends a signed-out host to sign in and back to this event', async () => {
 		eventsApi.getEvent.mockRejectedValue(new ApiError('authentication required', 401));
-		render(EventPage, { data: { id: 'e 1' } });
+		render(EventPage, { data: { id: 'e 1', profile: null } });
 
 		await waitFor(() =>
 			expect(nav.goto).toHaveBeenCalledWith(`/auth/login?next=${encodeURIComponent('/events/e%201')}`)
@@ -166,7 +166,7 @@ describe('event page failures', () => {
 
 	it('offers a retry after a network failure', async () => {
 		eventsApi.getEvent.mockRejectedValueOnce(new ApiError('Network request failed', 0));
-		render(EventPage, { data: { id: 'e1' } });
+		render(EventPage, { data: { id: 'e1', profile: null } });
 
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			'Tidak dapat terhubung ke server. Periksa koneksi Anda.'
