@@ -136,7 +136,7 @@ func TestGetMe_returnsTheProfileForTheAuthenticatedHost(t *testing.T) {
 		t.Errorf("lang passed to Profile = %q, want en", svc.lastLang)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{`"role_code":"host"`, `"theme":"light"`, `"events_new"`, `"events:create"`, `"fab"`} {
+	for _, want := range []string{`"active_role":{"code":"host"`, `"theme":"light"`, `"events_new"`, `"events:create"`, `"fab"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body missing %q: %s", want, body)
 		}
