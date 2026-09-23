@@ -23,6 +23,7 @@ import (
 	"github.com/Briyantama/SELA/internal/config"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/rbac"
 )
 
 const (
@@ -76,11 +77,13 @@ func run(ctx context.Context, getenv func(string) string) error {
 	)
 
 	eventSvc := event.NewService(event.NewPostgresRepository(conn), event.Options{ShortLinkBaseURL: cfg.ShortLinkBaseURL})
+	rbacSvc := rbac.NewService(rbac.NewPostgresRepository(conn))
 
 	authHTTP := auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})
+	rbacHTTP := rbac.NewHTTPHandler(rbacSvc, authHTTP)
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.HTTPPort,
-		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP)),
+		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP, rbacHTTP), rbacHTTP),
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	}

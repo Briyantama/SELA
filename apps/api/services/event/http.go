@@ -36,24 +36,31 @@ type HostGuard interface {
 	RequireHost(next http.Handler) http.Handler
 }
 
+// PermissionGuard rejects requests whose host lacks a permission. *rbac.HTTPHandler implements it.
+type PermissionGuard interface {
+	RequirePermission(code string) func(http.Handler) http.Handler
+}
+
 // HTTPHandler exposes the event use cases as JSON endpoints. Category presets and the short-link
 // resolver are public; every route that creates or reads a specific event as its owner sits behind
-// the HostGuard.
+// the HostGuard. Creating an event additionally needs the events:create permission.
 type HTTPHandler struct {
 	events Events
 	guard  HostGuard
+	perms  PermissionGuard
 }
 
 // NewHTTPHandler returns the HTTP adapter for the use cases.
-func NewHTTPHandler(events Events, guard HostGuard) *HTTPHandler {
-	return &HTTPHandler{events: events, guard: guard}
+func NewHTTPHandler(events Events, guard HostGuard, perms PermissionGuard) *HTTPHandler {
+	return &HTTPHandler{events: events, guard: guard, perms: perms}
 }
 
 // Register mounts the event routes on the mux.
 func (h *HTTPHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/event-categories", h.listCategories)
 	mux.HandleFunc("GET /e/{short_code}", h.resolveShortCode)
-	mux.Handle("POST /api/v1/events", h.guard.RequireHost(http.HandlerFunc(h.createEvent)))
+	mux.Handle("POST /api/v1/events",
+		h.guard.RequireHost(h.perms.RequirePermission("events:create")(http.HandlerFunc(h.createEvent))))
 	mux.Handle("GET /api/v1/events/{id}", h.guard.RequireHost(http.HandlerFunc(h.getEvent)))
 	mux.Handle("GET /api/v1/events/{id}/qr.png", h.guard.RequireHost(h.qr(QRPNG)))
 	mux.Handle("GET /api/v1/events/{id}/qr.svg", h.guard.RequireHost(h.qr(QRSVG)))

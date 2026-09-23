@@ -18,6 +18,7 @@ import (
 	eventv1 "github.com/Briyantama/SELA/gen/go/event/v1"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/rbac"
 )
 
 // stubFlow answers every sign-in call with a fixed, successful outcome.
@@ -56,10 +57,24 @@ func (stubEvents) ResolveShortCode(context.Context, string) (event.PublicEvent, 
 	return event.PublicEvent{EventID: "e"}, nil
 }
 
+// stubRBAC answers every profile call with a fixed, successful outcome and grants every permission.
+type stubRBAC struct{}
+
+func (stubRBAC) Profile(context.Context, string, string) (rbac.Profile, error) {
+	return rbac.Profile{RoleCode: "host", RoleName: "Host"}, nil
+}
+
+func (stubRBAC) UpdatePreferences(context.Context, string, rbac.PreferencesInput) (rbac.Profile, error) {
+	return rbac.Profile{RoleCode: "host", RoleName: "Host"}, nil
+}
+
+func (stubRBAC) Has(context.Context, string, rbac.Permission) (bool, error) { return true, nil }
+
 func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 	// Arrange
 	authHTTP := auth.NewHTTPHandler(stubFlow{}, auth.HTTPConfig{})
-	mux := newMux(authHTTP, event.NewHTTPHandler(stubEvents{}, authHTTP))
+	rbacHTTP := rbac.NewHTTPHandler(stubRBAC{}, authHTTP)
+	mux := newMux(authHTTP, event.NewHTTPHandler(stubEvents{}, authHTTP, rbacHTTP), rbacHTTP)
 
 	tests := []struct {
 		name   string
@@ -79,6 +94,10 @@ func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 		{"get event with a session", http.MethodGet, "/api/v1/events/00000000-0000-4000-8000-000000000000", "", true, http.StatusOK},
 		{"qr needs a session", http.MethodGet, "/api/v1/events/00000000-0000-4000-8000-000000000000/qr.png", "", false, http.StatusUnauthorized},
 		{"qr with a session", http.MethodGet, "/api/v1/events/00000000-0000-4000-8000-000000000000/qr.png", "", true, http.StatusOK},
+		{"profile needs a session", http.MethodGet, "/api/v1/auth/me", "", false, http.StatusUnauthorized},
+		{"profile with a session", http.MethodGet, "/api/v1/auth/me", "", true, http.StatusOK},
+		{"preferences needs a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, false, http.StatusUnauthorized},
+		{"preferences with a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, true, http.StatusOK},
 		{"unknown route", http.MethodGet, "/api/v1/nothing", "", false, http.StatusNotFound},
 	}
 

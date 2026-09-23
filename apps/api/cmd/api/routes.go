@@ -10,6 +10,7 @@ import (
 	"github.com/Briyantama/SELA/internal/health"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/rbac"
 )
 
 // publicGRPCMethods are the only gRPC methods callable without a session: signing in and the
@@ -20,13 +21,16 @@ var publicGRPCMethods = []string{
 	"/sela.event.v1.EventService/ListEventCategories",
 }
 
-// newMux builds the HTTP routes: liveness, the auth endpoints and the event endpoints. The event
-// routes that touch a specific event are guarded by the auth handler's RequireHost middleware.
-func newMux(authHTTP *auth.HTTPHandler, eventHTTP *event.HTTPHandler) *http.ServeMux {
+// newMux builds the HTTP routes: liveness, the auth endpoints, the event endpoints and the RBAC
+// endpoints (GET /api/v1/auth/me, PATCH /api/v1/me/preferences). The event routes that touch a
+// specific event are guarded by the auth handler's RequireHost middleware, and creating one
+// additionally needs the events:create permission via the RBAC handler.
+func newMux(authHTTP *auth.HTTPHandler, eventHTTP *event.HTTPHandler, rbacHTTP *rbac.HTTPHandler) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.Handler())
 	authHTTP.Register(mux)
 	eventHTTP.Register(mux)
+	rbacHTTP.Register(mux)
 	return mux
 }
 
