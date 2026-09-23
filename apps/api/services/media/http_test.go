@@ -62,8 +62,12 @@ func (s *stubGuests) CompleteUpload(context.Context, media.Guest, string) (media
 	return s.item, s.err
 }
 
-func (s *stubGuests) MyMedia(context.Context, media.Guest) ([]media.Item, error)    { return s.items, s.err }
-func (s *stubGuests) HallOfFame(context.Context, media.Guest) ([]media.Item, error) { return s.items, s.err }
+func (s *stubGuests) MyMedia(context.Context, media.Guest) ([]media.Item, error) {
+	return s.items, s.err
+}
+func (s *stubGuests) HallOfFame(context.Context, media.Guest) ([]media.Item, error) {
+	return s.items, s.err
+}
 func (s *stubGuests) HostMedia(_ context.Context, host, _ string) ([]media.Item, error) {
 	s.gotHostID = host
 	return s.items, s.err

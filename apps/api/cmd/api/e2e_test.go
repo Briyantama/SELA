@@ -215,7 +215,7 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 		"GRPC_PORT":     grpcPort,
 		"COOKIE_SECURE": "false",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
 		"S3_ENDPOINT":          "http://127.0.0.1:9000",
 		"S3_REGION":            "us-east-1",
 		"S3_BUCKET":            "sela-media-test",
@@ -438,7 +438,7 @@ func TestRun_failsWhenPostgresIsUnreachable(t *testing.T) {
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
 		"S3_ENDPOINT":          "http://127.0.0.1:9000",
 		"S3_REGION":            "us-east-1",
 		"S3_BUCKET":            "sela-media-test",
@@ -466,7 +466,7 @@ func TestRun_failsWhenRedisIsUnreachable(t *testing.T) {
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
 		"S3_ENDPOINT":          "http://127.0.0.1:9000",
 		"S3_REGION":            "us-east-1",
 		"S3_BUCKET":            "sela-media-test",
