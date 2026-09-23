@@ -216,6 +216,11 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 		"COOKIE_SECURE": "false",
 
 		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	getenv := func(k string) string { return env[k] }
 
@@ -434,6 +439,11 @@ func TestRun_failsWhenPostgresIsUnreachable(t *testing.T) {
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
 		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -457,6 +467,11 @@ func TestRun_failsWhenRedisIsUnreachable(t *testing.T) {
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
 		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
