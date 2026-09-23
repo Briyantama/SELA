@@ -12,6 +12,7 @@ require (
 	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/redis/go-redis/v9 v9.22.0
+	golang.org/x/image v0.45.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/protobuf v1.36.12
 	rsc.io/qr v0.2.0
@@ -35,7 +36,6 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

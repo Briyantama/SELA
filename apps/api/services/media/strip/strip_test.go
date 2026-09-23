@@ -168,7 +168,8 @@ func TestClean_appliesTheEXIFOrientationBeforeDroppingIt(t *testing.T) {
 
 func TestClean_rotatesPixelsForOrientation6(t *testing.T) {
 	// Arrange: orientation 6 means the stored image must be turned 90° clockwise to display upright.
-	in := jpegWithMetadata(t, 4, 2, 6)
+	// The image is large enough that JPEG chroma subsampling does not smear the corner colours.
+	in := jpegWithMetadata(t, 32, 16, 6)
 
 	// Act
 	out, err := strip.Clean("image/jpeg", in)
@@ -181,10 +182,15 @@ func TestClean_rotatesPixelsForOrientation6(t *testing.T) {
 	}
 
 	// Assert: after a clockwise turn the source's bottom-left (x=0, y=max: no red, full green) lands
-	// top-left.
+	// top-left, and its top-left (no red, no green) lands top-right. A counter-clockwise turn would put
+	// the red top-right corner there instead.
 	r, g, _, _ := img.At(0, 0).RGBA()
-	if r>>8 > 100 || g>>8 < 150 {
-		t.Fatalf("top-left = r%d g%d, want low red and high green (rotated clockwise)", r>>8, g>>8)
+	if int(g>>8)-int(r>>8) < 120 {
+		t.Fatalf("top-left = r%d g%d, want green well above red (rotated clockwise)", r>>8, g>>8)
+	}
+	r, g, _, _ = img.At(img.Bounds().Dx()-1, 0).RGBA()
+	if r>>8 > 60 || g>>8 > 60 {
+		t.Fatalf("top-right = r%d g%d, want dark (the source's top-left)", r>>8, g>>8)
 	}
 }
 
