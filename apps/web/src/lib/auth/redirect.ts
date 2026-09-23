@@ -1,0 +1,27 @@
+const DEFAULT_NEXT_PATH = '/events/new';
+
+const DELETE = 0x7f;
+const LAST_CONTROL = 0x1f;
+
+// Control characters and backslashes are treated as separators by some browsers, which turns
+// "/\evil.example" into a protocol-relative URL. Checked by code point so the source stays
+// plain text (a regex with literal control characters makes git treat the file as binary).
+function hasUnsafeCharacter(path: string): boolean {
+	for (const character of path) {
+		const code = character.charCodeAt(0);
+		if (code <= LAST_CONTROL || code === DELETE || character === '\\') return true;
+	}
+	return false;
+}
+
+/**
+ * Returns `raw` only when it is a plain same-site path, so the `next` query parameter of the
+ * login page cannot send a host to another origin after signing in. Anything else, including the
+ * login page itself, yields the fallback.
+ */
+export function safeNextPath(raw: string | null | undefined, fallback = DEFAULT_NEXT_PATH): string {
+	if (!raw || raw[0] !== '/' || raw[1] === '/') return fallback;
+	if (hasUnsafeCharacter(raw)) return fallback;
+	if (raw.startsWith('/auth/')) return fallback;
+	return raw;
+}

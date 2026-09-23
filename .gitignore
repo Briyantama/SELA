@@ -1,0 +1,8 @@
+﻿.claude/
+*.md
+*.pdf
+!README.md
+.env
+coverage/
+test-results/
+playwright-report/

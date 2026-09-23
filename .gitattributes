@@ -1,0 +1,2 @@
+# Shell scripts run under bash on every platform; CRLF endings break them ("\r: command not found").
+*.sh text eol=lf
