@@ -2,9 +2,11 @@ package objstore
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -37,10 +39,31 @@ func (m *Memory) Keys() []string {
 	return keys
 }
 
+const memoryURLPrefix = "memory://bucket/"
+
+// KeyOf returns the object key a pre-signed URL from this store points at.
+func (m *Memory) KeyOf(req PresignedRequest) string {
+	escaped, _, _ := strings.Cut(strings.TrimPrefix(req.URL, memoryURLPrefix), "?")
+	key, err := url.PathUnescape(escaped)
+	if err != nil {
+		return ""
+	}
+	return key
+}
+
+// Upload plays the browser's PUT against a pre-signed request, refusing a body or content type that
+// differs from the signature the way S3 does.
+func (m *Memory) Upload(req PresignedRequest, contentType string, body []byte) error {
+	if contentType != req.Headers["Content-Type"] || strconv.Itoa(len(body)) != req.Headers["Content-Length"] {
+		return fmt.Errorf("objstore: upload does not match the signed content type and length")
+	}
+	return m.Put(context.Background(), m.KeyOf(req), contentType, body)
+}
+
 func (m *Memory) PresignPut(_ context.Context, key, contentType string, size int64, ttl time.Duration) (PresignedRequest, error) {
 	return PresignedRequest{
 		Method: "PUT",
-		URL:    "memory://bucket/" + url.PathEscape(key),
+		URL:    memoryURLPrefix + url.PathEscape(key),
 		Headers: map[string]string{
 			"Content-Type":   contentType,
 			"Content-Length": strconv.FormatInt(size, 10),
@@ -51,7 +74,7 @@ func (m *Memory) PresignPut(_ context.Context, key, contentType string, size int
 
 func (m *Memory) PresignGet(_ context.Context, key string, ttl time.Duration) (string, error) {
 	expires := strconv.FormatInt(time.Now().Add(ttl).Unix(), 10)
-	return "memory://bucket/" + url.PathEscape(key) + "?expires=" + expires, nil
+	return memoryURLPrefix + url.PathEscape(key) + "?expires=" + expires, nil
 }
 
 func (m *Memory) Head(_ context.Context, key string) (ObjectInfo, error) {
