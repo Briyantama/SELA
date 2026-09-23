@@ -42,3 +42,28 @@
 	--duration-fast: 150ms;
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Dark counterpart, chosen by the resolved RBAC theme preference (see +layout.svelte), not by
+   prefers-color-scheme: the server-resolved preference is authoritative. Same warm/ink identity,
+   inverted: dark ink surfaces, warm paper-toned text, the same terracotta accent lightened to stay
+   legible on dark. */
+:root[data-theme='dark'] {
+	color-scheme: dark;
+
+	--paper: #1c1815;
+	--paper-raised: #26211d;
+	--paper-sunk: #14110f;
+	--ink: #f3ece1;
+	--ink-soft: #b8a99a;
+	--line: #3d342c;
+	--accent: #e08863;
+	--accent-strong: #f0a07a;
+	--accent-ink: #1c1815;
+	--danger: #e2695a;
+	--danger-wash: #3a231f;
+	--ok: #6fbf94;
+	--ok-wash: #1c3229;
+	--focus: #6ea8ff;
+
+	--shadow-card: 0 1px 0 #ffffff0d inset, 0 1px 2px #00000040, 0 12px 28px -16px #00000066;
+}

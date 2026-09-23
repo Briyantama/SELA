@@ -56,11 +56,30 @@ func (s stubEvents) ResolveShortCode(context.Context, string) (event.PublicEvent
 	return event.PublicEvent{}, s.err
 }
 
-func newMux(svc event.Events, tokens map[string]string) *http.ServeMux {
+// stubPermissionGuard answers every RequirePermission check the same way, regardless of the code.
+type stubPermissionGuard struct{ allow bool }
+
+func (g stubPermissionGuard) RequirePermission(string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !g.allow {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func newMuxWithPermission(svc event.Events, tokens map[string]string, allow bool) *http.ServeMux {
 	guard := auth.NewHTTPHandler(fakeAuth{tokens: tokens}, auth.HTTPConfig{})
 	mux := http.NewServeMux()
-	event.NewHTTPHandler(svc, guard).Register(mux)
+	event.NewHTTPHandler(svc, guard, stubPermissionGuard{allow: allow}).Register(mux)
 	return mux
+}
+
+func newMux(svc event.Events, tokens map[string]string) *http.ServeMux {
+	return newMuxWithPermission(svc, tokens, true)
 }
 
 func do(mux http.Handler, method, path, token, body string) *httptest.ResponseRecorder {
@@ -220,6 +239,22 @@ func TestHTTPCreateEvent_createsForTheAuthenticatedHost(t *testing.T) {
 	var owner string
 	if err := h.conn.QueryRow(`SELECT host_id FROM events WHERE event_id = $1`, got.EventID).Scan(&owner); err != nil || owner != h.owner {
 		t.Errorf("stored owner = %q (%v), want %q", owner, err, h.owner)
+	}
+}
+
+func TestHTTPCreateEvent_requiresTheEventsCreatePermission(t *testing.T) {
+	// Arrange
+	f := newFixture(t)
+	owner := f.host(t, "owner@example.test")
+	mux := newMuxWithPermission(f.svc, map[string]string{"owner-token": owner}, false)
+
+	// Act
+	rec := do(mux, http.MethodPost, "/api/v1/events", "owner-token",
+		`{"category_code":"ulang_tahun","name":"Ulang Tahun","event_date":"2026-12-05"}`)
+
+	// Assert
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403", rec.Code)
 	}
 }
 
