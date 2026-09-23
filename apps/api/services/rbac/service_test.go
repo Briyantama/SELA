@@ -43,6 +43,13 @@ func (f *fixture) exec(t *testing.T, query string, args ...any) {
 	}
 }
 
+func (f *fixture) scanRow(t *testing.T, dest *string, query string, args ...any) {
+	t.Helper()
+	if err := f.conn.QueryRow(query, args...).Scan(dest); err != nil {
+		t.Fatalf("scanRow %q: %v", query, err)
+	}
+}
+
 func TestProfile_defaultsToTheGlobalThemeAndLanguageWhenNeitherHostNorRoleSetOne(t *testing.T) {
 	// Arrange
 	f := newFixture(t)
@@ -194,9 +201,9 @@ func TestProfile_aGrantedChildBringsItsGroupAndAnEmptyGroupIsPruned(t *testing.T
 	f := newFixture(t)
 	host := f.host(t, "gita@example.test")
 	var groupID, childID, emptyGroupID string
-	f.conn.QueryRow(`INSERT INTO menus (code, menu_type, sort_order) VALUES ('grp', 'group', 5) RETURNING menu_id`).Scan(&groupID)
-	f.conn.QueryRow(`INSERT INTO menus (code, parent_id, menu_type, path, sort_order) VALUES ('grp_child', $1, 'link', '/x', 1) RETURNING menu_id`, groupID).Scan(&childID)
-	f.conn.QueryRow(`INSERT INTO menus (code, menu_type, sort_order) VALUES ('empty_grp', 'group', 6) RETURNING menu_id`).Scan(&emptyGroupID)
+	f.scanRow(t, &groupID, `INSERT INTO menus (code, menu_type, sort_order) VALUES ('grp', 'group', 5) RETURNING menu_id`)
+	f.scanRow(t, &childID, `INSERT INTO menus (code, parent_id, menu_type, path, sort_order) VALUES ('grp_child', $1, 'link', '/x', 1) RETURNING menu_id`, groupID)
+	f.scanRow(t, &emptyGroupID, `INSERT INTO menus (code, menu_type, sort_order) VALUES ('empty_grp', 'group', 6) RETURNING menu_id`)
 	f.exec(t, `INSERT INTO menu_translations (menu_id, language_code, label) VALUES ($1, 'id', 'Grup'), ($2, 'id', 'Anak')`, groupID, childID)
 	f.exec(t, `INSERT INTO role_menus (role_id, menu_id) SELECT role_id, $1 FROM roles WHERE code = 'host'`, childID)
 	f.exec(t, `INSERT INTO role_menus (role_id, menu_id) SELECT role_id, $1 FROM roles WHERE code = 'host'`, emptyGroupID)
@@ -230,7 +237,7 @@ func TestProfile_menuLabelFallsBackToTheDefaultLanguageThenTheCode(t *testing.T)
 	f := newFixture(t)
 	host := f.host(t, "hana@example.test")
 	var id string
-	f.conn.QueryRow(`INSERT INTO menus (code, menu_type, path, sort_order) VALUES ('extra', 'link', '/extra', 3) RETURNING menu_id`).Scan(&id)
+	f.scanRow(t, &id, `INSERT INTO menus (code, menu_type, path, sort_order) VALUES ('extra', 'link', '/extra', 3) RETURNING menu_id`)
 	f.exec(t, `INSERT INTO role_menus (role_id, menu_id) SELECT role_id, $1 FROM roles WHERE code = 'host'`, id)
 	f.exec(t, `INSERT INTO menu_translations (menu_id, language_code, label) VALUES ($1, 'id', 'Ekstra')`, id)
 
@@ -326,10 +333,10 @@ func TestProfile_aSyntheticDropdownIsResolvedAndRoleFiltered(t *testing.T) {
 	f := newFixture(t)
 	host := f.host(t, "kiki@example.test")
 	var dropdownID, itemA, itemB string
-	f.conn.QueryRow(`INSERT INTO dropdowns (code) VALUES ('status') RETURNING dropdown_id`).Scan(&dropdownID)
+	f.scanRow(t, &dropdownID, `INSERT INTO dropdowns (code) VALUES ('status') RETURNING dropdown_id`)
 	f.exec(t, `INSERT INTO dropdown_translations (dropdown_id, language_code, label) VALUES ($1, 'id', 'Status')`, dropdownID)
-	f.conn.QueryRow(`INSERT INTO dropdown_items (dropdown_id, value, sort_order, is_default) VALUES ($1, 'active', 1, true) RETURNING item_id`, dropdownID).Scan(&itemA)
-	f.conn.QueryRow(`INSERT INTO dropdown_items (dropdown_id, value, sort_order) VALUES ($1, 'draft', 2) RETURNING item_id`, dropdownID).Scan(&itemB)
+	f.scanRow(t, &itemA, `INSERT INTO dropdown_items (dropdown_id, value, sort_order, is_default) VALUES ($1, 'active', 1, true) RETURNING item_id`, dropdownID)
+	f.scanRow(t, &itemB, `INSERT INTO dropdown_items (dropdown_id, value, sort_order) VALUES ($1, 'draft', 2) RETURNING item_id`, dropdownID)
 	f.exec(t, `INSERT INTO dropdown_item_translations (item_id, language_code, label) VALUES ($1, 'id', 'Aktif'), ($2, 'id', 'Draf')`, itemA, itemB)
 	f.exec(t, `INSERT INTO role_dropdowns (role_id, dropdown_item_id) SELECT role_id, $1 FROM roles WHERE code = 'host'`, itemA)
 

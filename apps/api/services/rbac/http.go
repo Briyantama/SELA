@@ -228,7 +228,7 @@ func toProfileJSON(p Profile) profileJSON {
 
 	langs := make([]languageJSON, 0, len(p.Preferences.SupportedLanguages))
 	for _, l := range p.Preferences.SupportedLanguages {
-		langs = append(langs, languageJSON{Code: l.Code, Name: l.Name})
+		langs = append(langs, languageJSON(l))
 	}
 
 	permissions := p.Permissions
