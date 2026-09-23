@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-09-19",
+  "as_of": "2026-09-23",
   "milestones": [
     {"id": "M1", "name": "Milestone 1: Host creates an event"},
     {"id": "M2", "name": "Milestone 2: Guest captures and uploads"},
@@ -208,6 +208,14 @@
       "red": "n/a (documentation)", "green": "n/a (FSD/CLAUDE.md are gitignored .md files; the tracker files are versioned)", "coverage": "n/a", "frs": "",
       "deliverables": "FSD change row, 8.6 live-verification note, 10.1 e2e/timing note, 11.1; tracking README timed-check protocol; this tracker",
       "updated": "2026-09-20"
+    },
+    {
+      "milestone": "M2", "id": "T8.1", "task": "Task 8: Guest session and media schema",
+      "description": "Migration 0004 (guest_sessions, media, events.involves_minors) and the services/media domain types",
+      "module": "internal/db, services/media", "status": "Pending Verification",
+      "red": "6d1e157", "green": "720b11f", "coverage": "100% (services/media)", "frs": "FR-02.2, FR-04.1, FR-05.5, FR-05.6",
+      "deliverables": "Schema with the same-event session key, Hall of Fame rules and gallery indexes. Open: the Go schema tests were mirrored against Postgres 16 (49/49) and type-checked, but scripts/check.sh has not run on this change yet",
+      "updated": "2026-09-23"
     },
     {
       "milestone": "M2", "id": "M2.1", "task": "Milestone 2 (not yet planned)",
@@ -427,6 +435,20 @@
       "breaking": "None.",
       "decisions": "PRD and BRD still unchanged; the fallback defaults are recorded in FSD 4.1 as derived from BRD 7/10 for product review.",
       "commits": "n/a", "date": "2026-09-20"
+    },
+    {
+      "milestone": "M2", "module": "internal/db, services/media", "task": "T8.1",
+      "summary": "Added migration 0004: guest_sessions, media and events.involves_minors, with schema tests and the media domain types.",
+      "breaking": "New migration 0004 (additive). events gains involves_minors boolean NOT NULL DEFAULT false.",
+      "decisions": "No sisa_jepretan column (Redis holds the live counter; the durable count comes from media rows). No browser fingerprint (FSD 8.11 data minimisation). processing_state is separate from the moderation status. The composite key media.(event_id, session_id) -> guest_sessions keeps a session inside its own event. RESTRICT deletes, so the retention job removes stored objects first. WebP accepted beside the FR-04.1 formats because the camera pipeline outputs it (FSD 7).",
+      "commits": "6d1e157 720b11f", "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2", "module": "docs", "task": "T8.1",
+      "summary": "Updated the FSD to v2.10 (Section 5 implementation notes for migration 0004) and this tracker.",
+      "breaking": "None.",
+      "decisions": "Guest visibility stays as FSD 3.2 and 4.5 define it (own media, plus the Hall of Fame after reveal); the gallery queries come in a later task.",
+      "commits": "n/a", "date": "2026-09-23"
     }
   ],
   "requirements": {
@@ -436,6 +458,7 @@
     "FR-01.4": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2", "evidence": "shot_limit (NULL/0 = unlimited), reveal_mode and reveal_at stored per event; per-category numeric defaults remain tbd pending product"},
     "FR-01.5": {"milestone": "M5", "tasks": "M5.1"},
     "FR-01.6": {"milestone": "M5", "tasks": "M5.1"},
+    "FR-02.2": {"milestone": "M2", "status": "Partial", "tasks": "T8.1", "evidence": "guest_sessions table (one row per device session, optional nickname, no fingerprint); session creation and the guest cookie are not built yet"},
     "FR-09.1": {"milestone": "M1", "status": "Partial", "tasks": "T3.3, T3.5, T3.6, T3.7, T3.8, T6.1, T7.1", "evidence": "email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); verified live against real Redis and Mailpit (T3.8, T7.1); SMS not implemented"},
     "FR-09.2": {"milestone": "M5", "tasks": "M5.1"},
     "FR-09.3": {"milestone": "M5", "tasks": "M5.1"},
