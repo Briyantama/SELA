@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-09-23",
+  "as_of": "2026-09-25",
   "milestones": [
     {
       "id": "M1",
@@ -437,13 +437,13 @@
       "task": "Guest upload and session rate limits",
       "description": "Redis rate limits on guest-session creation and uploads (per session and per connection address)",
       "module": "services/media",
-      "status": "Not Started",
-      "red": "",
-      "green": "",
-      "coverage": "",
+      "status": "Completed",
+      "red": "aba5d19 fc23d8c",
+      "green": "bbd766d 420a2b4",
+      "coverage": "85.2% (services/auth), 83.7% (services/media), 82.8% (cmd/api)",
       "frs": "FR-SEC.9",
-      "deliverables": "Follow-up from T8.2/T8.3",
-      "updated": "2026-09-23"
+      "deliverables": "auth.WindowLimiter (hashed rl:<scope>:<sha256> keys over CountWindow) + media.Limiter: 20 guest sessions/10 min/IP, 60 uploads/10 min/session, 300 uploads/10 min/IP; 429 + Retry-After; limiter errors fail closed (500). auth.ClientAddr exported (connection address only). scripts/check.sh passed (proto, gofmt, vet, lint, Go + web tests, e2e 10/10). Chore 47b0ad4 pins LF for *.go/*.sql.",
+      "updated": "2026-09-25"
     },
     {
       "milestone": "M2",
@@ -924,6 +924,16 @@
       "decisions": "FR-02.2 marked Completed at the API level; the rest stay Partial until the PWA and M3 gallery UI exist.",
       "commits": "n/a",
       "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "services/auth, services/media",
+      "task": "T8.5",
+      "summary": "Added a reusable fixed-window limiter in auth and applied it to guest-session creation and upload requests (FR-SEC.9); FSD v2.14 (6, 8, 11.1).",
+      "breaking": "None. media.HTTPConfig gained an optional Limiter; nil disables limiting.",
+      "decisions": "Limits are constants (not env) for now. Keys use the connection address only; behind a proxy all guests share a bucket unless the proxy preserves it. FR-SEC.9 stays Partial until share-link creation is limited.",
+      "commits": "aba5d19 bbd766d fc23d8c 420a2b4 47b0ad4",
+      "date": "2026-09-25"
     }
   ],
   "requirements": {
@@ -992,8 +1002,8 @@
     "FR-SEC.9": {
       "milestone": "M1",
       "status": "Partial",
-      "tasks": "T3.5, T3.6",
-      "evidence": "Redis rate limiting on OTP endpoints; upload and share-link limits pending"
+      "tasks": "T3.5, T3.6, T8.5",
+      "evidence": "Redis rate limiting on OTP endpoints and on guest-session creation and uploads (20 sessions/10 min/IP, 60 uploads/10 min/session, 300 uploads/10 min/IP, fail-closed); share-link creation limit pending"
     },
     "FR-02.1": {
       "milestone": "M2",
