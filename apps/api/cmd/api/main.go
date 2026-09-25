@@ -106,7 +106,7 @@ func run(ctx context.Context, getenv func(string) string) error {
 
 	authHTTP := auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})
 	rbacHTTP := rbac.NewHTTPHandler(rbacSvc, authHTTP)
-	mediaHTTP := media.NewHTTPHandler(mediaSvc, authHTTP, media.HTTPConfig{CookieSecure: cfg.CookieSecure})
+	mediaHTTP := media.NewHTTPHandler(mediaSvc, authHTTP, media.HTTPConfig{CookieSecure: cfg.CookieSecure, Limiter: auth.NewWindowLimiter(auth.NewRedisStore(rdb))})
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.HTTPPort,
 		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP, rbacHTTP), rbacHTTP, mediaHTTP),

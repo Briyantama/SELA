@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Briyantama/SELA/internal/httpx"
@@ -24,6 +26,18 @@ const (
 	msgNotReceived = "upload not received yet"
 	msgUnprocessed = "the file could not be processed"
 	msgInternal    = "internal error"
+	msgRateLimited = "too many requests, try again later"
+
+	// Fixed-window limits for the public, abuse-prone routes (FR-SEC.9). Uploads are limited per
+	// guest session and, as a backstop against session farming, per connection address.
+	limitWindow          = 10 * time.Minute
+	sessionLimitPerIP    = 20
+	uploadLimitPerGuest  = 60
+	uploadLimitPerClient = 300
+
+	scopeSession  = "guest-session"
+	scopeUpload   = "upload"
+	scopeUploadIP = "upload-ip"
 )
 
 // Guests is what the HTTP adapter needs from the service; *Service implements it.
@@ -42,8 +56,15 @@ type HostGuard interface {
 	RequireHost(next http.Handler) http.Handler
 }
 
+// Limiter counts a hit against a fixed window; *auth.WindowLimiter implements it.
+type Limiter interface {
+	Allow(ctx context.Context, scope, subject string, limit int, window time.Duration) (ok bool, retryAfter time.Duration, err error)
+}
+
 // HTTPConfig configures the adapter.
 type HTTPConfig struct {
+	// Limiter rate limits guest-session and upload requests. Nil disables limiting (tests only).
+	Limiter Limiter
 	// CookieSecure marks the guest cookie Secure. Disable only for plain-HTTP local development.
 	CookieSecure bool
 }
@@ -95,6 +116,25 @@ func (h *HTTPHandler) guest(next func(http.ResponseWriter, *http.Request, Guest)
 	})
 }
 
+// allow counts one hit and answers 429 (with Retry-After) or 500 itself when the request must stop.
+func (h *HTTPHandler) allow(w http.ResponseWriter, r *http.Request, scope, subject string, limit int) bool {
+	if h.cfg.Limiter == nil {
+		return true
+	}
+	ok, retry, err := h.cfg.Limiter.Allow(r.Context(), scope, subject, limit, limitWindow)
+	if err != nil {
+		slog.Error("rate limiter failed", "scope", scope, "err", err)
+		httpx.WriteError(w, http.StatusInternalServerError, msgInternal)
+		return false
+	}
+	if !ok {
+		w.Header().Set("Retry-After", strconv.Itoa(max(int(math.Ceil(retry.Seconds())), 1)))
+		httpx.WriteError(w, http.StatusTooManyRequests, msgRateLimited)
+		return false
+	}
+	return true
+}
+
 func guestToken(r *http.Request) string {
 	if c, err := r.Cookie(guestCookieName); err == nil {
 		return c.Value
@@ -113,6 +153,9 @@ type sessionJSON struct {
 }
 
 func (h *HTTPHandler) startSession(w http.ResponseWriter, r *http.Request) {
+	if !h.allow(w, r, scopeSession, auth.ClientAddr(r), sessionLimitPerIP) {
+		return
+	}
 	var body struct {
 		Nickname *string `json:"nickname"`
 	}
@@ -161,6 +204,10 @@ type uploadJSON struct {
 }
 
 func (h *HTTPHandler) beginUpload(w http.ResponseWriter, r *http.Request, g Guest) {
+	if !h.allow(w, r, scopeUpload, g.SessionID, uploadLimitPerGuest) ||
+		!h.allow(w, r, scopeUploadIP, auth.ClientAddr(r), uploadLimitPerClient) {
+		return
+	}
 	var body struct {
 		ContentType string `json:"content_type"`
 		SizeBytes   int64  `json:"size_bytes"`
