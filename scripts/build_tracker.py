@@ -226,35 +226,34 @@ def add_status_dropdown(ws, column_letter, last_row, statuses):
     dv.add(f"{column_letter}2:{column_letter}{last_row}")
 
 
-def build_summary(wb, data):
+def _share(part, whole):
+    return part / whole if whole else 0
+
+
+def build_summary(wb, data, task_rows, trace_rows_):
+    """Writes computed numbers, not formulas: openpyxl cannot store a formula together with its cached
+    result, so formula cells read as None for pandas/openpyxl (data_only=True). The workbook is
+    regenerated from tracker.json on every run, so there is nothing for a formula to keep live."""
     summary = wb.create_sheet("Summary", 1)
     summary.append(["Phase / Milestone"] + TASK_STATUSES + ["Total", "% Completed"])
     first = 2
-    for i, milestone in enumerate(data["milestones"]):
-        r = first + i
-        row = [milestone["name"]]
-        for col in range(len(TASK_STATUSES)):
-            letter = get_column_letter(2 + col)
-            row.append(f"=COUNTIFS(Tracker!$A:$A,$A{r},Tracker!$E:$E,{letter}$1)")
-        row.append(f"=SUM(B{r}:E{r})")
-        row.append(f"=IF(F{r}=0,0,E{r}/F{r})")
-        summary.append(row)
+    totals = [0] * len(TASK_STATUSES)
+    for milestone in data["milestones"]:
+        counts = [
+            sum(1 for row in task_rows if row[0] == milestone["name"] and row[4] == status)
+            for status in TASK_STATUSES
+        ]
+        totals = [t + c for t, c in zip(totals, counts)]
+        summary.append([milestone["name"]] + counts + [sum(counts), _share(counts[-1], sum(counts))])
     total_row = first + len(data["milestones"])
-    summary.append(
-        ["All tasks"]
-        + [f"=SUM({get_column_letter(c)}{first}:{get_column_letter(c)}{total_row - 1})" for c in range(2, 7)]
-        + [f"=IF(F{total_row}=0,0,E{total_row}/F{total_row})"]
-    )
+    summary.append(["All tasks"] + totals + [sum(totals), _share(totals[-1], sum(totals))])
     for r in range(first, total_row + 1):
         summary.cell(row=r, column=7).number_format = "0%"
     summary.append([])
     summary.append(["Requirements (FR IDs)"] + REQ_STATUSES + ["Total"])
     req_header = summary.max_row
-    summary.append(
-        ["All FR IDs"]
-        + [f"=COUNTIF(Traceability!$E:$E,{get_column_letter(2 + i)}{req_header})" for i in range(len(REQ_STATUSES))]
-        + [f"=SUM(B{req_header + 1}:D{req_header + 1})"]
-    )
+    req_counts = [sum(1 for row in trace_rows_ if row[4] == status) for status in REQ_STATUSES]
+    summary.append(["All FR IDs"] + req_counts + [sum(req_counts)])
     for row in (1, req_header):
         for cell in summary[row]:
             if cell.value:
@@ -280,7 +279,7 @@ def build_guide(wb, data):
         ("Completed: RED and GREEN commits recorded, coverage >= 80% where applicable, scripts/check.sh passes, docs synced.", False),
         ("", False),
         ("Requirement statuses (Traceability sheet): Not Started, Partial, Completed.", False),
-        ("Sheets: Summary (live counts), Tracker (one row per task and module), Change Log, Traceability (FR IDs).", False),
+        ("Sheets: Summary (counts computed at build time), Tracker (one row per task and module), Change Log, Traceability (FR IDs).", False),
     ]
     for index, (text, bold) in enumerate(lines, start=1):
         guide.cell(row=index, column=1, value=text).font = Font(bold=bold, size=14 if index == 1 else 11)
@@ -308,7 +307,7 @@ def build_workbook(data, fsd_requirements):
     add_status_formatting(trace, "E", trace.max_row)
     add_status_dropdown(trace, "E", trace.max_row, REQ_STATUSES)
 
-    build_summary(wb, data)
+    build_summary(wb, data, t_rows, r_rows)
     return wb, t_rows, c_rows, r_rows
 
 

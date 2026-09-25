@@ -51,8 +51,8 @@ class SummarySheetTest(unittest.TestCase):
 
     def test_requirement_counts_match_the_traceability_rows(self):
         sheet = read_summary(data_only=True)
-        self.assertEqual([c.value for c in sheet[7][1:4]], ["Not Started", "Partial", "Completed"])
-        self.assertEqual([c.value for c in sheet[8][1:5]], [1, 2, 1, 4])
+        self.assertEqual([c.value for c in sheet[6][1:4]], ["Not Started", "Partial", "Completed"])
+        self.assertEqual([c.value for c in sheet[7][1:5]], [1, 2, 1, 4])
 
     def test_cells_hold_plain_numbers_not_formulas(self):
         # openpyxl cannot store a formula together with its cached result, so the Summary stores numbers.
