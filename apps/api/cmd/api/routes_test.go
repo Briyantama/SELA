@@ -127,6 +127,8 @@ func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 		{"profile with a session", http.MethodGet, "/api/v1/auth/me", "", true, http.StatusOK},
 		{"preferences needs a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, false, http.StatusUnauthorized},
 		{"preferences with a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, true, http.StatusOK},
+		{"resolver is public", http.MethodGet, "/api/v1/e/AbCdEfGh", "", false, http.StatusOK},
+		{"retired guest pwa path is not served", http.MethodGet, "/e/AbCdEfGh", "", false, http.StatusNotFound},
 		{"guest session is public", http.MethodPost, eventPath + "/guest-session", "", false, http.StatusCreated},
 		{"guest upload needs the guest cookie", http.MethodPost, eventPath + "/media/uploads", `{"content_type":"image/jpeg","size_bytes":1}`, false, http.StatusUnauthorized},
 		{"my media needs the guest cookie", http.MethodGet, eventPath + "/my-media", "", false, http.StatusUnauthorized},
