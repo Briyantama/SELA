@@ -447,6 +447,20 @@
     },
     {
       "milestone": "M2",
+      "id": "T8.6",
+      "task": "Guest short-code routes (pre-PWA)",
+      "description": "Move the short-link resolver to /api/v1/e/{short_code} so the web app can own /e/{code} for the guest PWA page, and open a guest session straight from a short code",
+      "module": "services/event, services/media, cmd/api, apps/web (e2e)",
+      "status": "Completed",
+      "red": "4651987 e7d5d53",
+      "green": "b6509df 5a80691",
+      "coverage": "91.3% (services/event), 84.4% (services/media), 82.8% (cmd/api)",
+      "frs": "FR-01.3 FR-02.1 FR-02.2 FR-SEC.9",
+      "deliverables": "GET /api/v1/e/{short_code} replaces GET /e/{short_code} (handler, PublicEvent projection and identical 404s unchanged); the API no longer serves /e/. New POST /api/v1/e/{short_code}/guest-session with media.StartSessionByCode + Repository.GuestEventByShortCode (same SQL liveness filter over the unique short_code index) and media's own base62 screen, so media still never imports services/event. Shared joinEvent (service) and openSession (adapter) keep the two entry points from drifting. Cookie stays scoped to the resolved event id, so uploads receive it and resume goes through the {event_id} route. New route shares the guest-session rate-limit bucket, giving short-code probing a limit for the first time. Short link and QR still read {base}/e/{code}. Verified against a live API: resolver 200, retired /e/ 404, session 201 with Path=/api/v1/events/{resolved id}, unknown code 404; scripts/check.sh passed in full (proto drift, gofmt, vet, golangci-lint, Go tests, svelte-check 411 files 0 errors, web 184 tests, real-stack e2e 10/10).",
+      "updated": "2026-09-25"
+    },
+    {
+      "milestone": "M2",
       "id": "M2.1",
       "task": "Milestone 2: remaining guest work",
       "description": "Guest camera PWA (getUserMedia, post-shutter canvas, offline upload queue), event status messages and category theme (FR-02.3, FR-02.4), collage, gallery-upload toggle",
@@ -933,6 +947,16 @@
       "breaking": "None. media.HTTPConfig gained an optional Limiter; nil disables limiting.",
       "decisions": "Limits are constants (not env) for now. Keys use the connection address only; behind a proxy all guests share a bucket unless the proxy preserves it. FR-SEC.9 stays Partial until share-link creation is limited.",
       "commits": "aba5d19 bbd766d fc23d8c 420a2b4 47b0ad4",
+      "date": "2026-09-25"
+    },
+    {
+      "milestone": "M2",
+      "module": "services/event, services/media, cmd/api, apps/web",
+      "task": "T8.6",
+      "summary": "Moved the short-link resolver to GET /api/v1/e/{short_code} and added POST /api/v1/e/{short_code}/guest-session, so /e/{code} is free for the guest PWA page and a scanned QR opens a session in one round trip; FSD v2.15 (6, 8.6, 11.1).",
+      "breaking": "GET /e/{short_code} is no longer served by the API. Only two call sites used it (cmd/api/e2e_test.go, apps/web host e2e); both moved. The short link and QR are unchanged and still read {base}/e/{code}. media.Guests gained StartSessionByCode, so the three stub implementations were updated.",
+      "decisions": "Neither route can nest under /api/v1/events/: ServeMux rejects a two-segment pattern there as conflicting with {id}/qr.png, and a by-code guest-session route would collide with {event_id}/media/{media_id}. /api/v1/e/ was chosen to mirror the guest-facing link. The by-code route cannot resume, because the guest cookie is scoped to /api/v1/events/{event_id} and is never sent to it; it is first-contact only and returns event_id so the client resumes through the {event_id} route. Widening the cookie path was rejected to keep the FSD 8.6 scope. media keeps its own base62 pattern rather than importing services/event.",
+      "commits": "4651987 b6509df e7d5d53 5a80691",
       "date": "2026-09-25"
     }
   ],
