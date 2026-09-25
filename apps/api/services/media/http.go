@@ -17,6 +17,9 @@ const (
 	guestCookieName = "sela_guest"
 	maxBodyBytes    = 4 << 10
 	eventsPrefix    = "/api/v1/events/"
+	// shortCodePrefix mirrors the guest-facing /e/{short_code} link. It cannot nest under
+	// eventsPrefix: ServeMux rejects a pattern there as conflicting with {event_id}/media/{media_id}.
+	shortCodePrefix = "/api/v1/e/"
 
 	msgNotFound    = "not found"
 	msgGuestNeeded = "guest session required"
@@ -43,6 +46,7 @@ const (
 // Guests is what the HTTP adapter needs from the service; *Service implements it.
 type Guests interface {
 	StartSession(ctx context.Context, eventID, token string, nickname *string) (StartedSession, error)
+	StartSessionByCode(ctx context.Context, shortCode, token string, nickname *string) (StartedSession, error)
 	Authenticate(ctx context.Context, eventID, token string) (Guest, error)
 	BeginUpload(ctx context.Context, g Guest, contentType string, size int64) (Upload, error)
 	CompleteUpload(ctx context.Context, g Guest, mediaID string) (Item, error)
@@ -84,6 +88,7 @@ func NewHTTPHandler(svc Guests, guard HostGuard, cfg HTTPConfig) *HTTPHandler {
 // Register mounts the guest routes (behind the guest cookie) and the host gallery (behind RequireHost).
 func (h *HTTPHandler) Register(mux *http.ServeMux) {
 	mux.Handle("POST "+eventsPrefix+"{event_id}/guest-session", private(http.HandlerFunc(h.startSession)))
+	mux.Handle("POST "+shortCodePrefix+"{short_code}/guest-session", private(http.HandlerFunc(h.startSessionByCode)))
 	mux.Handle("POST "+eventsPrefix+"{event_id}/media/uploads", private(h.guest(h.beginUpload)))
 	mux.Handle("POST "+eventsPrefix+"{event_id}/media/{media_id}/complete", private(h.guest(h.completeUpload)))
 	mux.Handle("GET "+eventsPrefix+"{event_id}/my-media", private(h.guest(h.myMedia)))
@@ -152,7 +157,27 @@ type sessionJSON struct {
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
+// startSession opens a session for a guest who already knows the event id -- the route a returning
+// guest uses, because the guest cookie is scoped to it.
 func (h *HTTPHandler) startSession(w http.ResponseWriter, r *http.Request) {
+	h.openSession(w, r, func(ctx context.Context, token string, nickname *string) (StartedSession, error) {
+		return h.svc.StartSession(ctx, r.PathValue("event_id"), token, nickname)
+	})
+}
+
+// startSessionByCode opens a session straight from the short code in the QR, sparing a first-time
+// guest a resolve round trip before the camera can start.
+func (h *HTTPHandler) startSessionByCode(w http.ResponseWriter, r *http.Request) {
+	h.openSession(w, r, func(ctx context.Context, token string, nickname *string) (StartedSession, error) {
+		return h.svc.StartSessionByCode(ctx, r.PathValue("short_code"), token, nickname)
+	})
+}
+
+// openSession is everything the two session routes share: the per-client limit, the optional
+// nickname body, the scoped cookie and the response. join names the event however its route does.
+func (h *HTTPHandler) openSession(w http.ResponseWriter, r *http.Request,
+	join func(ctx context.Context, token string, nickname *string) (StartedSession, error),
+) {
 	if !h.allow(w, r, scopeSession, auth.ClientAddr(r), sessionLimitPerIP) {
 		return
 	}
@@ -162,13 +187,15 @@ func (h *HTTPHandler) startSession(w http.ResponseWriter, r *http.Request) {
 	if r.ContentLength != 0 && !httpx.DecodeJSON(w, r, &body, maxBodyBytes) {
 		return
 	}
-	started, err := h.svc.StartSession(r.Context(), r.PathValue("event_id"), guestToken(r), body.Nickname)
+	started, err := join(r.Context(), guestToken(r), body.Nickname)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
 
-	// The token travels only in the HttpOnly cookie, scoped to this event's API paths (FSD 8.6).
+	// The token travels only in the HttpOnly cookie, scoped to the resolved event's API paths
+	// (FSD 8.6) -- never to the route that was called, so a session opened by short code still
+	// reaches the upload routes, and resuming goes through the event-id route.
 	seconds := int(started.ExpiresIn / time.Second)
 	http.SetCookie(w, &http.Cookie{
 		Name:     guestCookieName,

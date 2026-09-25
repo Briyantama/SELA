@@ -78,6 +78,10 @@ func (stubGuests) StartSession(context.Context, string, string, *string) (media.
 	return media.StartedSession{Token: "guest", Guest: media.Guest{EventID: "e", SessionID: "s"}, ExpiresIn: time.Hour}, nil
 }
 
+func (stubGuests) StartSessionByCode(context.Context, string, string, *string) (media.StartedSession, error) {
+	return media.StartedSession{Token: "guest", Guest: media.Guest{EventID: "e", SessionID: "s"}, ExpiresIn: time.Hour}, nil
+}
+
 func (stubGuests) Authenticate(_ context.Context, eventID, token string) (media.Guest, error) {
 	if token != "guest" {
 		return media.Guest{}, media.ErrUnauthorized

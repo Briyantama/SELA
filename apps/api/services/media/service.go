@@ -139,7 +139,34 @@ func (s *Service) StartSession(ctx context.Context, eventID, token string, nickn
 	if err != nil {
 		return StartedSession{}, err
 	}
+	return s.joinEvent(ctx, ev, token, nick)
+}
 
+// StartSessionByCode is StartSession keyed on the short code from the QR, so a guest who has only
+// scanned a link opens a session in one round trip instead of resolving the code first. The session,
+// and the cookie the adapter scopes from it, belong to the resolved event id.
+//
+// It cannot resume: the guest cookie is scoped to /api/v1/events/{event_id}, so a browser never
+// sends it here. Callers resume through StartSession with the event id this returns.
+func (s *Service) StartSessionByCode(ctx context.Context, shortCode, token string, nickname *string) (StartedSession, error) {
+	if !isShortCode(shortCode) {
+		return StartedSession{}, ErrNotFound
+	}
+	nick, err := normalizeNickname(nickname)
+	if err != nil {
+		return StartedSession{}, err
+	}
+	ev, err := s.repo.GuestEventByShortCode(ctx, shortCode, s.opts.Now())
+	if err != nil {
+		return StartedSession{}, err
+	}
+	return s.joinEvent(ctx, ev, token, nick)
+}
+
+// joinEvent resumes or creates a session for an event that is already known to be joinable. Both
+// entry points share it so quota, session and token handling cannot drift apart.
+func (s *Service) joinEvent(ctx context.Context, ev EventInfo, token string, nick *string) (StartedSession, error) {
+	eventID := ev.ID
 	started := StartedSession{ShotLimit: ev.ShotLimit, InvolvesMinors: ev.InvolvesMinors, ExpiresIn: s.opts.SessionTTL}
 	if token != "" {
 		guest, ok, err := s.guests.LoadSession(ctx, s.tokenID(token))
@@ -237,6 +264,14 @@ var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 
 // isUUID screens ids before they reach a query, so malformed ids look exactly like unknown ones.
 func isUUID(id string) bool { return uuidPattern.MatchString(id) }
+
+// shortCodePattern mirrors the events.short_code CHECK constraint. media keeps its own copy rather
+// than importing services/event: the two services share the events table, never Go code.
+var shortCodePattern = regexp.MustCompile(`^[0-9A-Za-z]{8}$`)
+
+// isShortCode screens codes before they reach a query, so a malformed code is indistinguishable
+// from an unknown one.
+func isShortCode(code string) bool { return shortCodePattern.MatchString(code) }
 
 func newUUID() (string, error) {
 	b := make([]byte, 16)

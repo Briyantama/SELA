@@ -41,6 +41,9 @@ type Expired struct {
 type Repository interface {
 	// GuestEvent returns an event guests may join now: active and not past its expiry.
 	GuestEvent(ctx context.Context, eventID string, now time.Time) (EventInfo, error)
+	// GuestEventByShortCode is GuestEvent keyed on the short code from the QR. EventInfo.ID carries
+	// the resolved event id, which everything downstream uses.
+	GuestEventByShortCode(ctx context.Context, shortCode string, now time.Time) (EventInfo, error)
 	CreateSession(ctx context.Context, eventID string, nickname *string) (string, error)
 	// CountShots counts a session's shots that are spent or in flight (everything but failed uploads).
 	CountShots(ctx context.Context, eventID, sessionID string) (int, error)
@@ -82,6 +85,28 @@ func (r *PostgresRepository) GuestEvent(ctx context.Context, eventID string, now
 	}
 	if err != nil {
 		return EventInfo{}, fmt.Errorf("read guest event: %w", err)
+	}
+	ev.ShotLimit = intPtr(shotLimit)
+	return ev, nil
+}
+
+// GuestEventByShortCode applies exactly the same liveness filter as GuestEvent, one WHERE clause
+// over the unique short_code index. Unknown, draft, expired and past-expiry codes all come back as
+// sql.ErrNoRows, so the caller cannot tell them apart. The comparison is case-sensitive: codes are
+// base62.
+func (r *PostgresRepository) GuestEventByShortCode(ctx context.Context, shortCode string, now time.Time) (EventInfo, error) {
+	var ev EventInfo
+	var shotLimit sql.NullInt64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT event_id, shot_limit, involves_minors FROM events
+		  WHERE short_code = $1 AND status = 'active' AND (expires_at IS NULL OR expires_at > $2)`,
+		shortCode, now,
+	).Scan(&ev.ID, &shotLimit, &ev.InvolvesMinors)
+	if errors.Is(err, sql.ErrNoRows) {
+		return EventInfo{}, ErrNotFound
+	}
+	if err != nil {
+		return EventInfo{}, fmt.Errorf("read guest event by short code: %w", err)
 	}
 	ev.ShotLimit = intPtr(shotLimit)
 	return ev, nil
