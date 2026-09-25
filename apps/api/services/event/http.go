@@ -58,7 +58,9 @@ func NewHTTPHandler(events Events, guard HostGuard, perms PermissionGuard) *HTTP
 // Register mounts the event routes on the mux.
 func (h *HTTPHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/event-categories", h.listCategories)
-	mux.HandleFunc("GET /e/{short_code}", h.resolveShortCode)
+	// The guest-safe resolver mirrors the /e/{short_code} short link, but cannot live under
+	// /api/v1/events/: ServeMux rejects a two-segment pattern there as conflicting with {id}/qr.png.
+	mux.HandleFunc("GET /api/v1/e/{short_code}", h.resolveShortCode)
 	mux.Handle("POST /api/v1/events",
 		h.guard.RequireHost(h.perms.RequirePermission("events:create")(http.HandlerFunc(h.createEvent))))
 	mux.Handle("GET /api/v1/events/{id}", h.guard.RequireHost(http.HandlerFunc(h.getEvent)))

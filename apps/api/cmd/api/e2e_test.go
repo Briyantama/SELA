@@ -320,7 +320,7 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	if !strings.HasPrefix(created.Data.ShortLink, wantLink) {
 		t.Fatalf("short link = %q, want prefix %q", created.Data.ShortLink, wantLink)
 	}
-	resolveURL := base + "/e/" + strings.TrimPrefix(created.Data.ShortLink, wantLink)
+	resolveURL := base + "/api/v1/e/" + strings.TrimPrefix(created.Data.ShortLink, wantLink)
 	resolved := getWith(t, resolveURL, nil)
 	var guestView struct {
 		Success bool `json:"success"`
@@ -339,7 +339,7 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	if _, err := conn.Exec(`UPDATE events SET status = 'expired' WHERE event_id = $1`, created.Data.EventID); err != nil {
 		t.Fatalf("expire event: %v", err)
 	}
-	for name, url := range map[string]string{"an expired event": resolveURL, "an unknown code": base + "/e/ZZZZZZZZ"} {
+	for name, url := range map[string]string{"an expired event": resolveURL, "an unknown code": base + "/api/v1/e/ZZZZZZZZ"} {
 		r := getWith(t, url, nil)
 		r.Body.Close()
 		if r.StatusCode != http.StatusNotFound {
