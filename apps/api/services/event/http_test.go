@@ -15,6 +15,12 @@ import (
 	"github.com/Briyantama/SELA/services/event"
 )
 
+// resolvePath is the public short-link resolver. It mirrors the guest-facing /e/{short_code} link
+// under /api/v1 so the web app can own /e/{short_code} itself for the guest PWA page. It cannot nest
+// under /api/v1/events/: ServeMux rejects any two-segment pattern there as conflicting with
+// {id}/qr.png. The human-facing short link keeps its /e/ form.
+const resolvePath = "/api/v1/e/"
+
 // fakeAuth resolves session tokens to host ids, standing in for the real sign-in flow.
 type fakeAuth struct {
 	tokens map[string]string
@@ -451,7 +457,7 @@ func TestHTTPResolve_isPublicAndReturnsGuestSafeMetadata(t *testing.T) {
 	for name, token := range map[string]string{"no session": "", "an invalid session": "nope"} {
 		t.Run(name, func(t *testing.T) {
 			// Act
-			rec := do(h.mux, http.MethodGet, "/e/"+created.ShortCode, token, "")
+			rec := do(h.mux, http.MethodGet, resolvePath+created.ShortCode, token, "")
 
 			// Assert
 			if rec.Code != http.StatusOK {
@@ -477,13 +483,32 @@ func TestHTTPResolve_isPublicAndReturnsGuestSafeMetadata(t *testing.T) {
 	}
 }
 
-func TestHTTPResolve_setsSafeHeaders(t *testing.T) {
+func TestHTTPResolve_noLongerServesTheGuestPWAPath(t *testing.T) {
+	// The /e/{short_code} path belongs to the web app's guest page: the API must not answer there,
+	// or the two collide on one URL. The short link itself keeps the /e/ form (see the create tests).
 	// Arrange
 	h := newHTTPFixture(t)
 	created := h.createBirthday(t)
 
 	// Act
 	rec := do(h.mux, http.MethodGet, "/e/"+created.ShortCode, "", "")
+
+	// Assert
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("GET /e/%s = %d, want 404 from the mux; body %s", created.ShortCode, rec.Code, rec.Body)
+	}
+	if strings.Contains(rec.Body.String(), created.EventID) {
+		t.Errorf("the retired path still resolved the event: %s", rec.Body)
+	}
+}
+
+func TestHTTPResolve_setsSafeHeaders(t *testing.T) {
+	// Arrange
+	h := newHTTPFixture(t)
+	created := h.createBirthday(t)
+
+	// Act
+	rec := do(h.mux, http.MethodGet, resolvePath+created.ShortCode, "", "")
 
 	// Assert
 	want := map[string]string{
@@ -515,7 +540,7 @@ func TestHTTPResolve_everyFailureLooksIdentical(t *testing.T) {
 	if _, err := h.conn.Exec(`UPDATE events SET expires_at = now() - interval '1 hour' WHERE event_id = $1`, pastExpiry.EventID); err != nil {
 		t.Fatalf("set expiry: %v", err)
 	}
-	baseline := do(h.mux, http.MethodGet, "/e/ZZZZZZZZ", "", "")
+	baseline := do(h.mux, http.MethodGet, resolvePath+"ZZZZZZZZ", "", "")
 
 	tests := map[string]string{
 		"unknown code":      "ZZZZZZZZ",
@@ -539,7 +564,7 @@ func TestHTTPResolve_everyFailureLooksIdentical(t *testing.T) {
 	for name, code := range tests {
 		t.Run(name, func(t *testing.T) {
 			// Act
-			rec := do(h.mux, http.MethodGet, "/e/"+code, "", "")
+			rec := do(h.mux, http.MethodGet, resolvePath+code, "", "")
 
 			// Assert
 			if rec.Code != http.StatusNotFound || rec.Body.String() != baseline.Body.String() {
@@ -557,7 +582,7 @@ func TestHTTPResolve_onlyAcceptsGet(t *testing.T) {
 	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
 		t.Run(method, func(t *testing.T) {
 			// Act
-			rec := do(h.mux, method, "/e/"+created.ShortCode, "owner-token", "")
+			rec := do(h.mux, method, resolvePath+created.ShortCode, "owner-token", "")
 
 			// Assert
 			if rec.Code != http.StatusMethodNotAllowed {
@@ -584,7 +609,7 @@ func TestHTTPResolve_mapsErrorsWithoutLeakingDetails(t *testing.T) {
 			mux := newMux(stubEvents{err: tc.err}, nil)
 
 			// Act
-			rec := do(mux, http.MethodGet, "/e/AbCdEfGh", "", "")
+			rec := do(mux, http.MethodGet, resolvePath+"AbCdEfGh", "", "")
 
 			// Assert
 			if rec.Code != tc.wantStatus || !strings.Contains(rec.Body.String(), tc.wantMsg) {

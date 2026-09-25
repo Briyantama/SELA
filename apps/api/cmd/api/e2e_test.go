@@ -215,7 +215,12 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 		"GRPC_PORT":     grpcPort,
 		"COOKIE_SECURE": "false",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	getenv := func(k string) string { return env[k] }
 
@@ -315,7 +320,7 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	if !strings.HasPrefix(created.Data.ShortLink, wantLink) {
 		t.Fatalf("short link = %q, want prefix %q", created.Data.ShortLink, wantLink)
 	}
-	resolveURL := base + "/e/" + strings.TrimPrefix(created.Data.ShortLink, wantLink)
+	resolveURL := base + "/api/v1/e/" + strings.TrimPrefix(created.Data.ShortLink, wantLink)
 	resolved := getWith(t, resolveURL, nil)
 	var guestView struct {
 		Success bool `json:"success"`
@@ -334,7 +339,7 @@ func TestRun_serversTheWholeSignInFlowOverHTTPAndGRPCThenStopsCleanly(t *testing
 	if _, err := conn.Exec(`UPDATE events SET status = 'expired' WHERE event_id = $1`, created.Data.EventID); err != nil {
 		t.Fatalf("expire event: %v", err)
 	}
-	for name, url := range map[string]string{"an expired event": resolveURL, "an unknown code": base + "/e/ZZZZZZZZ"} {
+	for name, url := range map[string]string{"an expired event": resolveURL, "an unknown code": base + "/api/v1/e/ZZZZZZZZ"} {
 		r := getWith(t, url, nil)
 		r.Body.Close()
 		if r.StatusCode != http.StatusNotFound {
@@ -433,7 +438,12 @@ func TestRun_failsWhenPostgresIsUnreachable(t *testing.T) {
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -456,7 +466,12 @@ func TestRun_failsWhenRedisIsUnreachable(t *testing.T) {
 		"SMTP_FROM":    "no-reply@sela.test",
 		"OTP_HMAC_KEY": "0123456789abcdef0123456789abcdef-e2e-only",
 
-		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+		"SHORT_LINK_BASE_URL":  "https://sela.example.test",
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "minio-secret-test",
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()

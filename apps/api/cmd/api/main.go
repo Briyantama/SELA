@@ -21,8 +21,10 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/Briyantama/SELA/internal/config"
+	"github.com/Briyantama/SELA/internal/objstore"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/media"
 	"github.com/Briyantama/SELA/services/rbac"
 )
 
@@ -31,6 +33,8 @@ const (
 	writeTimeout    = 15 * time.Second
 	shutdownTimeout = 10 * time.Second
 	connectTimeout  = 10 * time.Second
+	// sweepInterval is how often abandoned uploads are failed and their shots returned.
+	sweepInterval = time.Minute
 )
 
 func main() {
@@ -79,11 +83,33 @@ func run(ctx context.Context, getenv func(string) string) error {
 	eventSvc := event.NewService(event.NewPostgresRepository(conn), event.Options{ShortLinkBaseURL: cfg.ShortLinkBaseURL})
 	rbacSvc := rbac.NewService(rbac.NewPostgresRepository(conn))
 
+	store, err := objstore.NewS3(objstore.S3Config{
+		Endpoint:        cfg.S3.Endpoint,
+		Region:          cfg.S3.Region,
+		Bucket:          cfg.S3.Bucket,
+		AccessKeyID:     cfg.S3.AccessKeyID,
+		SecretAccessKey: cfg.S3.SecretAccessKey,
+		PathStyle:       cfg.S3.PathStyle,
+	})
+	if err != nil {
+		return err
+	}
+	// Guest tokens are hashed under the same secret as OTPs, with their own domain prefix.
+	mediaSvc, err := media.NewService(media.NewPostgresRepository(conn), media.NewRedisGuests(rdb), store, media.Options{
+		HMACKey:    cfg.OTPHMACKey,
+		SessionTTL: cfg.GuestSessionTTL,
+	})
+	if err != nil {
+		return err
+	}
+	go mediaSvc.RunSweeper(ctx, sweepInterval)
+
 	authHTTP := auth.NewHTTPHandler(svc, auth.HTTPConfig{CookieSecure: cfg.CookieSecure})
 	rbacHTTP := rbac.NewHTTPHandler(rbacSvc, authHTTP)
+	mediaHTTP := media.NewHTTPHandler(mediaSvc, authHTTP, media.HTTPConfig{CookieSecure: cfg.CookieSecure, Limiter: auth.NewWindowLimiter(auth.NewRedisStore(rdb))})
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.HTTPPort,
-		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP, rbacHTTP), rbacHTTP),
+		Handler:      newMux(authHTTP, event.NewHTTPHandler(eventSvc, authHTTP, rbacHTTP), rbacHTTP, mediaHTTP),
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 	}

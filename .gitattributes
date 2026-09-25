@@ -1,2 +1,6 @@
 # Shell scripts run under bash on every platform; CRLF endings break them ("\r: command not found").
 *.sh text eol=lf
+
+# gofmt and goose expect LF; autocrlf checkouts on Windows otherwise trip gofmt -l.
+*.go text eol=lf
+*.sql text eol=lf

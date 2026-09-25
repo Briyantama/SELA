@@ -1,173 +1,317 @@
 {
-  "as_of": "2026-09-23",
+  "as_of": "2026-09-25",
   "milestones": [
-    {"id": "M1", "name": "Milestone 1: Host creates an event"},
-    {"id": "M2", "name": "Milestone 2: Guest captures and uploads"},
-    {"id": "M3", "name": "Milestone 3: Role-correct gallery"},
-    {"id": "M4", "name": "Milestone 4: Moderate and export"},
-    {"id": "M5", "name": "Milestone 5: Plans and payment"},
-    {"id": "M6", "name": "Milestone 6: Privacy and compliance readiness"},
-    {"id": "M7", "name": "Milestone 7: Closed beta"},
-    {"id": "M8", "name": "Milestone 8: RBAC foundation (cross-cutting platform work)"},
-    {"id": "BL", "name": "Backlog: Should-have and later phases"}
+    {
+      "id": "M1",
+      "name": "Milestone 1: Host creates an event"
+    },
+    {
+      "id": "M2",
+      "name": "Milestone 2: Guest captures and uploads"
+    },
+    {
+      "id": "M3",
+      "name": "Milestone 3: Role-correct gallery"
+    },
+    {
+      "id": "M4",
+      "name": "Milestone 4: Moderate and export"
+    },
+    {
+      "id": "M5",
+      "name": "Milestone 5: Plans and payment"
+    },
+    {
+      "id": "M6",
+      "name": "Milestone 6: Privacy and compliance readiness"
+    },
+    {
+      "id": "M7",
+      "name": "Milestone 7: Closed beta"
+    },
+    {
+      "id": "M8",
+      "name": "Milestone 8: RBAC foundation (cross-cutting platform work)"
+    },
+    {
+      "id": "BL",
+      "name": "Backlog: Should-have and later phases"
+    }
   ],
   "tasks": [
     {
-      "milestone": "M1", "id": "T1.1", "task": "Task 1: Scaffold & Tooling",
+      "milestone": "M1",
+      "id": "T1.1",
+      "task": "Task 1: Scaffold & Tooling",
       "description": "Go API skeleton: JSON response envelope, health endpoint, API entrypoint",
-      "module": "internal/httpx, internal/health, cmd/api", "status": "Completed",
-      "red": "aae2ee6", "green": "bbc37ea 0bd97a3", "coverage": "100%", "frs": "",
+      "module": "internal/httpx, internal/health, cmd/api",
+      "status": "Completed",
+      "red": "aae2ee6",
+      "green": "bbc37ea 0bd97a3",
+      "coverage": "100%",
+      "frs": "",
       "deliverables": "httpx.WriteSuccess/WriteError ({success,data,error}); GET /healthz; graceful-shutdown server (later replaced by T3.7)",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T1.2", "task": "Task 1: Scaffold & Tooling",
+      "milestone": "M1",
+      "id": "T1.2",
+      "task": "Task 1: Scaffold & Tooling",
       "description": "SvelteKit web app scaffold with Vitest and the client-side API envelope parser",
-      "module": "apps/web", "status": "Completed",
-      "red": "5fa9976", "green": "4443ea5", "coverage": "100% lines / 91.7% branches", "frs": "",
+      "module": "apps/web",
+      "status": "Completed",
+      "red": "5fa9976",
+      "green": "4443ea5",
+      "coverage": "100% lines / 91.7% branches",
+      "frs": "",
       "deliverables": "apps/web (Svelte 5, Vite 8); src/lib/api/envelope.ts with ApiError; Vitest with an 80% coverage threshold; svelte-check clean",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T1.3", "task": "Task 1: Scaffold & Tooling",
+      "milestone": "M1",
+      "id": "T1.3",
+      "task": "Task 1: Scaffold & Tooling",
       "description": "Local dev infrastructure and the validation script",
-      "module": "deploy, scripts/check.sh", "status": "Completed",
-      "red": "n/a (tooling)", "green": "20ade0e cbeb530", "coverage": "n/a", "frs": "",
+      "module": "deploy, scripts/check.sh",
+      "status": "Completed",
+      "red": "n/a (tooling)",
+      "green": "20ade0e cbeb530",
+      "coverage": "n/a",
+      "frs": "",
       "deliverables": "deploy/docker-compose.yml (Postgres, Redis, Mailpit, localhost-only); .env.example; scripts/check.sh; CLAUDE.md commands",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T2.1", "task": "Task 2: Schema & Category Presets",
+      "milestone": "M1",
+      "id": "T2.1",
+      "task": "Task 2: Schema & Category Presets",
       "description": "Migration runner and the hosts, event_categories and events schema",
-      "module": "internal/db (migrations 0001-0003)", "status": "Completed",
-      "red": "9fe108b", "green": "45b058c b0b5b25", "coverage": "94.7%", "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
+      "module": "internal/db (migrations 0001-0003)",
+      "status": "Completed",
+      "red": "9fe108b",
+      "green": "45b058c b0b5b25",
+      "coverage": "94.7%",
+      "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
       "deliverables": "goose runner (db.Up/db.Down); tables with constraints and indexes; six seeded categories with undefined defaults stored as 'tbd'; internal/testdb (fresh database per test)",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.1", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.1",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "cmd/migrate CLI to apply or revert SQL migrations",
-      "module": "cmd/migrate", "status": "Completed",
-      "red": "f5935c9", "green": "a1e047f b2ef0ef", "coverage": "80.6%", "frs": "",
+      "module": "cmd/migrate",
+      "status": "Completed",
+      "red": "f5935c9",
+      "green": "a1e047f b2ef0ef",
+      "coverage": "80.6%",
+      "frs": "",
       "deliverables": "go run ./cmd/migrate [up|down] reading DATABASE_URL; run(ctx, args, getenv, out) is unit-testable",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.2", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.2",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Restructure the Go backend under apps/api",
-      "module": "apps/api (all Go code)", "status": "Completed",
-      "red": "n/a (pure move; existing tests unchanged)", "green": "aebe62e", "coverage": "unchanged (all packages)", "frs": "",
+      "module": "apps/api (all Go code)",
+      "status": "Completed",
+      "red": "n/a (pure move; existing tests unchanged)",
+      "green": "aebe62e",
+      "coverage": "unchanged (all packages)",
+      "frs": "",
       "deliverables": "go.mod moved to apps/api (module path unchanged); cmd, internal moved; db became internal/db; scripts/check.sh runs Go steps in apps/api",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.3", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.3",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "gRPC contracts and the proto generation script",
-      "module": "api/proto/v1, gen/go, scripts/proto-gen.sh", "status": "Completed",
-      "red": "409a125", "green": "24c7281", "coverage": "n/a (generated code)", "frs": "FR-09.1",
+      "module": "api/proto/v1, gen/go, scripts/proto-gen.sh",
+      "status": "Completed",
+      "red": "409a125",
+      "green": "24c7281",
+      "coverage": "n/a (generated code)",
+      "frs": "FR-09.1",
       "deliverables": "auth.proto (implemented) and event.proto (contract only); buf.yaml, buf.gen.yaml; committed gen/go; proto-gen.sh --check drift detection wired into check.sh",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.4", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.4",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Environment configuration with validation and secret redaction",
-      "module": "internal/config", "status": "Completed",
-      "red": "730db37", "green": "3b1ab82", "coverage": "100%", "frs": "",
+      "module": "internal/config",
+      "status": "Completed",
+      "red": "730db37",
+      "green": "3b1ab82",
+      "coverage": "100%",
+      "frs": "",
       "deliverables": "config.Load(getenv) reports every problem at once, never echoes secret values; Config.String() redacts secrets",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.5", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.5",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Auth core: OTP lifecycle, Redis state, Postgres hosts, SMTP mailer, sessions",
-      "module": "services/auth", "status": "Completed",
-      "red": "1043ded", "green": "3c45e13", "coverage": "80.2% at this commit (84.6% package total after T3.6)", "frs": "FR-09.1, FR-SEC.9, FR-SEC.4",
+      "module": "services/auth",
+      "status": "Completed",
+      "red": "1043ded",
+      "green": "3c45e13",
+      "coverage": "80.2% at this commit (84.6% package total after T3.6)",
+      "frs": "FR-09.1, FR-SEC.9, FR-SEC.4",
       "deliverables": "6-digit code stored as HMAC with 5 min TTL, single use; per-email and per-client rate limits; lockout after 5 wrong attempts for 15 min; hashed 12 h sessions; Postgres find-or-create host; SMTP mailer with header-injection guards",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.6", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.6",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "HTTP and gRPC adapters and the RequireHost middleware",
-      "module": "services/auth", "status": "Completed",
-      "red": "ffed71f", "green": "ce4729e", "coverage": "84.6%", "frs": "FR-09.1, FR-SEC.4, FR-SEC.9",
+      "module": "services/auth",
+      "status": "Completed",
+      "red": "ffed71f",
+      "green": "ce4729e",
+      "coverage": "84.6%",
+      "frs": "FR-09.1, FR-SEC.4, FR-SEC.9",
       "deliverables": "POST /api/v1/auth/otp/request and /verify; HttpOnly SameSite=Lax session cookie, token never in a body; Retry-After on 429; X-Forwarded-For ignored; sela.auth.v1.AuthService server; RequireHost + HostID(ctx)",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.7", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.7",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Wire config, Postgres, Redis, SMTP and auth into the API with an end-to-end test",
-      "module": "cmd/api", "status": "Completed",
-      "red": "5a3dbe0 578bab2", "green": "2bffd81 218243d", "coverage": "81.7%", "frs": "FR-09.1",
+      "module": "cmd/api",
+      "status": "Completed",
+      "red": "5a3dbe0 578bab2",
+      "green": "2bffd81 218243d",
+      "coverage": "81.7%",
+      "frs": "FR-09.1",
       "deliverables": "HTTP :8080 + gRPC :9090 in one process; run(ctx, getenv) with graceful shutdown; end-to-end test over HTTP and gRPC against real Postgres, in-process Redis and SMTP; .env.example documents the variables",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.8", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.8",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Verify against the real docker-compose Redis and Mailpit (Docker was not running during development)",
-      "module": "deploy, cmd/api", "status": "Completed",
-      "red": "n/a", "green": "n/a", "coverage": "n/a", "frs": "FR-09.1",
+      "module": "deploy, cmd/api",
+      "status": "Completed",
+      "red": "n/a",
+      "green": "n/a",
+      "coverage": "n/a",
+      "frs": "FR-09.1",
       "deliverables": "Verified live on 2026-09-20 against docker compose Redis 7 (password) and Mailpit with the real cmd/api, via apps/web/tests/e2e/auth-live.spec.ts (6 checks, all pass, no service change needed) and the host happy path (sign-in read from the Mailpit inbox). Checked: email delivery and format, wrong/right code, cookie flags, no token in body, single use, hashes-only in Redis, rate limit (429 + Retry-After), lockout after 5 wrong codes.",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T3.9", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.9",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Docs sync and this progress tracker",
-      "module": "docs (FSD v2.5), docs/tracking", "status": "Completed",
-      "red": "n/a (documentation)", "green": "n/a (docs/ is gitignored, not committed)", "coverage": "n/a", "frs": "",
+      "module": "docs (FSD v2.5), docs/tracking",
+      "status": "Completed",
+      "red": "n/a (documentation)",
+      "green": "n/a (docs/ is gitignored, not committed)",
+      "coverage": "n/a",
+      "frs": "",
       "deliverables": "FSD v2.5 (2.6, 4.9 note, 5 notes, 6 endpoints and gRPC, 8.6 parameters, 11.1 status); SELA_Progress_Tracker.xlsx and its build script scripts/build_tracker.py",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T3.10", "task": "Task 3: Email OTP Auth for Hosts",
+      "milestone": "M1",
+      "id": "T3.10",
+      "task": "Task 3: Email OTP Auth for Hosts",
       "description": "Session logout/revocation endpoint and refresh token (remainder of FR-SEC.4)",
-      "module": "services/auth", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-SEC.4",
+      "module": "services/auth",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-SEC.4",
       "deliverables": "Revocable sessions exposed through an endpoint; decide whether a refresh token is still needed",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T4.1", "task": "Task 4: Event Service",
+      "milestone": "M1",
+      "id": "T4.1",
+      "task": "Task 4: Event Service",
       "description": "Event domain: category presets with fallback defaults, event creation, short code and QR (PNG/SVG), host-scoped retrieval",
-      "module": "services/event (service, postgres repository, qr)", "status": "Completed",
-      "red": "acbece7", "green": "b726530", "coverage": "90.9%", "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
+      "module": "services/event (service, postgres repository, qr)",
+      "status": "Completed",
+      "red": "acbece7",
+      "green": "b726530",
+      "coverage": "90.9%",
+      "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
       "deliverables": "Effective defaults (host override, then defined category default, then unlimited/instant fallback); validation; 8-char base62 short codes with collision retry; 256-bit access token never returned; QR that decodes back to the short link (verified with a real decoder); reads filter by event_id AND host_id",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T4.2", "task": "Task 4: Event Service",
+      "milestone": "M1",
+      "id": "T4.2",
+      "task": "Task 4: Event Service",
       "description": "HTTP and gRPC adapters and their wiring into cmd/api",
-      "module": "services/event (http, grpc), cmd/api", "status": "Completed",
-      "red": "6c65e04 aeb1251", "green": "094e6bb cb7f51b 51a1ef0", "coverage": "90.9% (services/event), 82.7% (cmd/api)", "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
+      "module": "services/event (http, grpc), cmd/api",
+      "status": "Completed",
+      "red": "6c65e04 aeb1251",
+      "green": "094e6bb cb7f51b 51a1ef0",
+      "coverage": "90.9% (services/event), 82.7% (cmd/api)",
+      "frs": "FR-01.1, FR-01.2, FR-01.3, FR-01.4",
       "deliverables": "GET /api/v1/event-categories (public); POST /api/v1/events, GET /api/v1/events/{id}, GET .../qr.png and qr.svg behind RequireHost; sela.event.v1.EventService behind the Bearer interceptor; end-to-end test over HTTP and gRPC including a second host getting 404",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T4.3", "task": "Task 4: Event Service",
+      "milestone": "M1",
+      "id": "T4.3",
+      "task": "Task 4: Event Service",
       "description": "Supporting infrastructure: shared JSON decoder, SHORT_LINK_BASE_URL, event proto extension, gRPC host interceptor",
-      "module": "internal/httpx, internal/config, api/proto/v1/event.proto, services/auth", "status": "Completed",
-      "red": "0a61dd6 1c9b2a8 6f8cf8e b1a51e3", "green": "3861ee6 1110a02 ff5ae81 da51888", "coverage": "100% (httpx), 100% (config), 85.1% (auth)", "frs": "FR-01.3, FR-SEC.4",
+      "module": "internal/httpx, internal/config, api/proto/v1/event.proto, services/auth",
+      "status": "Completed",
+      "red": "0a61dd6 1c9b2a8 6f8cf8e b1a51e3",
+      "green": "3861ee6 1110a02 ff5ae81 da51888",
+      "coverage": "100% (httpx), 100% (config), 85.1% (auth)",
+      "frs": "FR-01.3, FR-SEC.4",
       "deliverables": "httpx.DecodeJSON (auth refactored onto it); required SHORT_LINK_BASE_URL (decision D4); Event.short_link/qr URLs and EventCategory effective_* fields; NewUnaryHostInterceptor with deny-by-default and a public allowlist",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T4.4", "task": "Task 4: Event Service",
+      "milestone": "M1",
+      "id": "T4.4",
+      "task": "Task 4: Event Service",
       "description": "Docs sync (FSD v2.6) and tracker update for Task 4",
-      "module": "docs (FSD v2.6), docs/tracking", "status": "Completed",
-      "red": "n/a (documentation)", "green": "n/a (docs/ is gitignored, not committed)", "coverage": "n/a", "frs": "",
+      "module": "docs (FSD v2.6), docs/tracking",
+      "status": "Completed",
+      "red": "n/a (documentation)",
+      "green": "n/a (docs/ is gitignored, not committed)",
+      "coverage": "n/a",
+      "frs": "",
       "deliverables": "FSD 4.1 implementation notes, 6 endpoints and gRPC, 11.1 status; this tracker",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T5.1", "task": "Task 5: QR code and short link",
+      "milestone": "M1",
+      "id": "T5.1",
+      "task": "Task 5: QR code and short link",
       "description": "Short-link resolver: GET /e/{short_code} (QR generation and the configurable base URL were delivered in T4.1 to T4.3)",
-      "module": "services/event", "status": "Completed",
-      "red": "1c6b579 1c6fa33 e8c01ae bebb849", "green": "4a9208e 97bdbe1 0e537e9", "coverage": "91.3%", "frs": "FR-01.3",
+      "module": "services/event",
+      "status": "Completed",
+      "red": "1c6b579 1c6fa33 e8c01ae bebb849",
+      "green": "4a9208e 97bdbe1 0e537e9",
+      "coverage": "91.3%",
+      "frs": "FR-01.3",
       "deliverables": "Resolver for short links to a placeholder guest page until the guest camera exists (Milestone 2)",
       "updated": "2026-09-19"
     },
     {
-      "milestone": "M1", "id": "T6.1", "task": "Task 6: Host web flow",
+      "milestone": "M1",
+      "id": "T6.1",
+      "task": "Task 6: Host web flow",
       "description": "Sign-in, category picker, name and date form, result screen with QR and link",
-      "module": "apps/web", "status": "Completed",
+      "module": "apps/web",
+      "status": "Completed",
       "red": "e22fc04 abfcf99 deb9be8 d205277 d1100f0 1d11def 7e82db3 63cce8a",
       "green": "840a9e6 9718420 a625187 532c966 94f617f 41bd0e7 1b66d55 e89ee60",
       "coverage": "99.7% lines, 90.2% branches, 96.8% statements, 97% functions (151 tests, 13 files)",
@@ -176,17 +320,26 @@
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T6.2", "task": "Task 6: Host web flow",
+      "milestone": "M1",
+      "id": "T6.2",
+      "task": "Task 6: Host web flow",
       "description": "Docs sync (FSD v2.8) and tracker update for Task 6",
-      "module": "docs (FSD v2.8), docs/tracking", "status": "Completed",
-      "red": "n/a (documentation)", "green": "n/a (docs/ is gitignored, not committed)", "coverage": "n/a", "frs": "",
+      "module": "docs (FSD v2.8), docs/tracking",
+      "status": "Completed",
+      "red": "n/a (documentation)",
+      "green": "n/a (docs/ is gitignored, not committed)",
+      "coverage": "n/a",
+      "frs": "",
       "deliverables": "FSD 10.1 implementation note, change row, 11.1 status; this tracker",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T7.1", "task": "Task 7: Verify milestone outcome",
+      "milestone": "M1",
+      "id": "T7.1",
+      "task": "Task 7: Verify milestone outcome",
       "description": "Real-stack end-to-end test and automated timing against the 3-minute target (the human timing is T7.2)",
-      "module": "apps/web (tests/e2e), scripts/e2e.sh, scripts/check.sh", "status": "Completed",
+      "module": "apps/web (tests/e2e), scripts/e2e.sh, scripts/check.sh",
+      "status": "Completed",
       "red": "56159ff 70c75d0 44e0983",
       "green": "29d31b5 fcdfe29 6037092 96d0a2a 7b11984",
       "coverage": "n/a for e2e; helper unit tests 17 (168 unit tests total, web coverage 99.7% lines / 90.2% branches); 10 e2e tests pass on the real stack",
@@ -195,96 +348,250 @@
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T7.2", "task": "Task 7: Verify milestone outcome",
+      "milestone": "M1",
+      "id": "T7.2",
+      "task": "Task 7: Verify milestone outcome",
       "description": "Human timed usability check: median setup time of 3-5 first-time hosts against the PRD metric (3 minutes or less, no documentation)",
-      "module": "docs/tracking (usability_sessions.csv)", "status": "Pending Verification",
-      "red": "n/a", "green": "n/a", "coverage": "n/a", "frs": "FR-01.1, FR-01.2, FR-01.3",
+      "module": "docs/tracking (usability_sessions.csv)",
+      "status": "Pending Verification",
+      "red": "n/a",
+      "green": "n/a",
+      "coverage": "n/a",
+      "frs": "FR-01.1, FR-01.2, FR-01.3",
       "deliverables": "Protocol in docs/tracking/README.md and an empty session template docs/tracking/usability_sessions.csv exist; no sessions have been run. Needs 3-5 first-time hosts; the median of total_s is compared with 180 s and recorded in the PRD metrics table. Automation (T7.1) cannot stand in for it.",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M1", "id": "T7.3", "task": "Task 7: Verify milestone outcome",
+      "milestone": "M1",
+      "id": "T7.3",
+      "task": "Task 7: Verify milestone outcome",
       "description": "Docs sync (FSD v2.9) and tracker update for Task 7",
-      "module": "docs (FSD v2.9), docs/tracking, CLAUDE.md", "status": "Completed",
-      "red": "n/a (documentation)", "green": "n/a (FSD/CLAUDE.md are gitignored .md files; the tracker files are versioned)", "coverage": "n/a", "frs": "",
+      "module": "docs (FSD v2.9), docs/tracking, CLAUDE.md",
+      "status": "Completed",
+      "red": "n/a (documentation)",
+      "green": "n/a (FSD/CLAUDE.md are gitignored .md files; the tracker files are versioned)",
+      "coverage": "n/a",
+      "frs": "",
       "deliverables": "FSD change row, 8.6 live-verification note, 10.1 e2e/timing note, 11.1; tracking README timed-check protocol; this tracker",
       "updated": "2026-09-20"
     },
     {
-      "milestone": "M2", "id": "T8.1", "task": "Task 8: Guest session and media schema",
-      "description": "Migration 0004 (guest_sessions, media, events.involves_minors) and the services/media domain types",
-      "module": "internal/db, services/media", "status": "Pending Verification",
-      "red": "6d1e157", "green": "720b11f", "coverage": "100% (services/media)", "frs": "FR-02.2, FR-04.1, FR-05.5, FR-05.6",
-      "deliverables": "Schema with the same-event session key, Hall of Fame rules and gallery indexes. Open: the Go schema tests were mirrored against Postgres 16 (49/49) and type-checked, but scripts/check.sh has not run on this change yet",
+      "milestone": "M2",
+      "id": "T8.1",
+      "task": "Task 8: Guest session and media schema",
+      "description": "Migration 0006 (renumbered from 0004; guest_sessions, media, events.involves_minors) and the services/media domain types",
+      "module": "internal/db, services/media",
+      "status": "Completed",
+      "red": "6d1e157",
+      "green": "720b11f",
+      "coverage": "100% (services/media)",
+      "frs": "FR-02.2, FR-04.1, FR-05.5, FR-05.6",
+      "deliverables": "Schema with the same-event session key, Hall of Fame rules and gallery indexes. Verified with scripts/check.sh (full gate incl. e2e) after the renumber fix 9328b69/badcd79",
       "updated": "2026-09-23"
     },
     {
-      "milestone": "M2", "id": "M2.1", "task": "Milestone 2 (not yet planned)",
-      "description": "Guest scan, camera, upload with quota, gallery upload",
-      "module": "apps/web, services/media, services/event", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-02.1-02.4, FR-03.1-03.6, FR-04.1-04.2, FR-SEC.2, FR-SEC.3",
-      "deliverables": "Guest session, PWA camera pipeline, Redis shot quota, upload validation", "updated": "2026-09-19"
+      "milestone": "M2",
+      "id": "T8.2",
+      "task": "Task 8.2: Guest session and shot quota",
+      "description": "Anonymous guest session (POST .../guest-session, sela_guest cookie), Redis session store and atomic per-session shot quota with rollback",
+      "module": "services/media, internal/config",
+      "status": "Completed",
+      "red": "83213fa 69a73cb",
+      "green": "92f231d 4bb836c",
+      "coverage": "83.1% (services/media), 100% (internal/config)",
+      "frs": "FR-02.1, FR-02.2, FR-03.3",
+      "deliverables": "Session create/resume for active events only; token hashed in Redis (guest:*) with GUEST_SESSION_TTL; Lua reserve/release on quota:{event}:{session} seeded from media rows; 20-way concurrency test never overspends. scripts/check.sh passed (proto, gofmt, vet, lint, Go + web tests, e2e 10/10)",
+      "updated": "2026-09-23"
     },
     {
-      "milestone": "M3", "id": "M3.1", "task": "Milestone 3 (not yet planned)",
+      "milestone": "M2",
+      "id": "T8.3",
+      "task": "Task 8.3: Direct upload, processing and gallery visibility",
+      "description": "S3 object store (MinIO dev bucket), pre-signed PUT for exact size/type, magic-byte check and EXIF/GPS stripping, sweeper, my-media / hall-of-fame / host media endpoints with SQL-level visibility",
+      "module": "internal/objstore, services/media, services/media/strip, cmd/api, deploy",
+      "status": "Completed",
+      "red": "459695b 4263b3d 69a73cb d8a0998 ac399ad",
+      "green": "82f84fd 3bfd703 4bb836c 22eb226 b08dd6a b2cd6b2",
+      "coverage": "83.1% (services/media), 82.3% (strip), 90.4% (internal/objstore), 82.8% (cmd/api)",
+      "frs": "FR-04.1, FR-05.5, FR-05.6, FR-SEC.1, FR-SEC.2, FR-SEC.3, FR-SEC.10",
+      "deliverables": "JPEG/PNG/WebP up to 20 MB; HEIC and video refused (415) until they can be stripped. Smoke-tested against the real API, Redis and MinIO: signed PUT 200, wrong type 403, served photo has no EXIF/GPS, quota 429, guest isolation, no-cookie 401. scripts/check.sh passed (proto, gofmt, vet, lint, Go + web tests, e2e 10/10)",
+      "updated": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "id": "T8.4",
+      "task": "HEIC and video metadata stripping",
+      "description": "Choose and add a metadata-rewriting tool for HEIC and MP4/MOV, then accept those types (video limit 200 MB)",
+      "module": "services/media",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-04.1, FR-SEC.2",
+      "deliverables": "Follow-up from T8.3",
+      "updated": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "id": "T8.5",
+      "task": "Guest upload and session rate limits",
+      "description": "Redis rate limits on guest-session creation and uploads (per session and per connection address)",
+      "module": "services/media",
+      "status": "Completed",
+      "red": "aba5d19 fc23d8c",
+      "green": "bbd766d 420a2b4",
+      "coverage": "85.2% (services/auth), 83.7% (services/media), 82.8% (cmd/api)",
+      "frs": "FR-SEC.9",
+      "deliverables": "auth.WindowLimiter (hashed rl:<scope>:<sha256> keys over CountWindow) + media.Limiter: 20 guest sessions/10 min/IP, 60 uploads/10 min/session, 300 uploads/10 min/IP; 429 + Retry-After; limiter errors fail closed (500). auth.ClientAddr exported (connection address only). scripts/check.sh passed (proto, gofmt, vet, lint, Go + web tests, e2e 10/10). Chore 47b0ad4 pins LF for *.go/*.sql.",
+      "updated": "2026-09-25"
+    },
+    {
+      "milestone": "M2",
+      "id": "T8.6",
+      "task": "Guest short-code routes (pre-PWA)",
+      "description": "Move the short-link resolver to /api/v1/e/{short_code} so the web app can own /e/{code} for the guest PWA page, and open a guest session straight from a short code",
+      "module": "services/event, services/media, cmd/api, apps/web (e2e)",
+      "status": "Completed",
+      "red": "4651987 e7d5d53",
+      "green": "b6509df 5a80691",
+      "coverage": "91.3% (services/event), 84.4% (services/media), 82.8% (cmd/api)",
+      "frs": "FR-01.3 FR-02.1 FR-02.2 FR-SEC.9",
+      "deliverables": "GET /api/v1/e/{short_code} replaces GET /e/{short_code} (handler, PublicEvent projection and identical 404s unchanged); the API no longer serves /e/. New POST /api/v1/e/{short_code}/guest-session with media.StartSessionByCode + Repository.GuestEventByShortCode (same SQL liveness filter over the unique short_code index) and media's own base62 screen, so media still never imports services/event. Shared joinEvent (service) and openSession (adapter) keep the two entry points from drifting. Cookie stays scoped to the resolved event id, so uploads receive it and resume goes through the {event_id} route. New route shares the guest-session rate-limit bucket, giving short-code probing a limit for the first time. Short link and QR still read {base}/e/{code}. Verified against a live API: resolver 200, retired /e/ 404, session 201 with Path=/api/v1/events/{resolved id}, unknown code 404; scripts/check.sh passed in full (proto drift, gofmt, vet, golangci-lint, Go tests, svelte-check 411 files 0 errors, web 184 tests, real-stack e2e 10/10).",
+      "updated": "2026-09-25"
+    },
+    {
+      "milestone": "M2",
+      "id": "M2.1",
+      "task": "Milestone 2: remaining guest work",
+      "description": "Guest camera PWA (getUserMedia, post-shutter canvas, offline upload queue), event status messages and category theme (FR-02.3, FR-02.4), collage, gallery-upload toggle",
+      "module": "apps/web, services/media, services/event",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-02.3, FR-02.4, FR-03.1, FR-03.2, FR-03.4, FR-03.5, FR-03.6, FR-04.2",
+      "deliverables": "Guest session, PWA camera pipeline, Redis shot quota, upload validation",
+      "updated": "2026-09-23"
+    },
+    {
+      "milestone": "M3",
+      "id": "M3.1",
+      "task": "Milestone 3 (not yet planned)",
       "description": "Role-correct gallery, reveal timer, real-time channels",
-      "module": "services/gallery, services/realtime", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-05.1-05.6",
-      "deliverables": "Host sees all media, guest only their own, WebSocket channels split by role", "updated": "2026-09-19"
+      "module": "services/gallery, services/realtime",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-05.1-05.6",
+      "deliverables": "Host sees all media, guest only their own, WebSocket channels split by role",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "M4", "id": "M4.1", "task": "Milestone 4 (not yet planned)",
+      "milestone": "M4",
+      "id": "M4.1",
+      "task": "Milestone 4 (not yet planned)",
       "description": "Moderation and full-gallery ZIP export",
-      "module": "services/gallery, services/media", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-06.1-06.4, FR-07.1-07.3",
-      "deliverables": "Hide/delete, asynchronous ZIP export, share links", "updated": "2026-09-19"
+      "module": "services/gallery, services/media",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-06.1-06.4, FR-07.1-07.3",
+      "deliverables": "Hide/delete, asynchronous ZIP export, share links",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "M5", "id": "M5.1", "task": "Milestone 5 (not yet planned)",
+      "milestone": "M5",
+      "id": "M5.1",
+      "task": "Milestone 5 (not yet planned)",
       "description": "Plans, package recommendation and payment (QRIS, e-wallet, card)",
-      "module": "services/payment, services/event", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-01.5, FR-01.6, FR-09.2, FR-09.3",
-      "deliverables": "Free and paid tiers by event scale; micro-payments; transaction history", "updated": "2026-09-19"
+      "module": "services/payment, services/event",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-01.5, FR-01.6, FR-09.2, FR-09.3",
+      "deliverables": "Free and paid tiers by event scale; micro-payments; transaction history",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "M6", "id": "M6.1", "task": "Milestone 6 (not yet planned)",
+      "milestone": "M6",
+      "id": "M6.1",
+      "task": "Milestone 6 (not yet planned)",
       "description": "Privacy and compliance readiness",
-      "module": "cross-cutting", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-SEC.1, FR-SEC.5-SEC.8, FR-SEC.10",
-      "deliverables": "PII column encryption with a blind index, audit log, retention and deletion, child-event defaults, noindex headers", "updated": "2026-09-19"
+      "module": "cross-cutting",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-SEC.1, FR-SEC.5-SEC.8, FR-SEC.10",
+      "deliverables": "PII column encryption with a blind index, audit log, retention and deletion, child-event defaults, noindex headers",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "M7", "id": "M7.1", "task": "Milestone 7 (not yet planned)",
+      "milestone": "M7",
+      "id": "M7.1",
+      "task": "Milestone 7 (not yet planned)",
       "description": "Closed beta across wedding, graduation and birthday events",
-      "module": "operations", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "",
-      "deliverables": "Validate the hypothesis and fill the TBD success metrics in the PRD", "updated": "2026-09-19"
+      "module": "operations",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "",
+      "deliverables": "Validate the hypothesis and fill the TBD success metrics in the PRD",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "BL", "id": "BL.1", "task": "Backlog: Notifications",
+      "milestone": "BL",
+      "id": "BL.1",
+      "task": "Backlog: Notifications",
       "description": "Scheduled and transactional email/WhatsApp notifications",
-      "module": "services/notification", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-08.1-08.2",
-      "deliverables": "Event reminders, reveal notices, expiry warnings", "updated": "2026-09-19"
+      "module": "services/notification",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-08.1-08.2",
+      "deliverables": "Event reminders, reveal notices, expiry warnings",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "BL", "id": "BL.2", "task": "Backlog: Hall of Fame",
+      "milestone": "BL",
+      "id": "BL.2",
+      "task": "Backlog: Hall of Fame",
       "description": "Host-curated highlights visible to guests",
-      "module": "services/gallery", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-11.1-11.5",
-      "deliverables": "Curation, ordering and sharing of the best photos", "updated": "2026-09-19"
+      "module": "services/gallery",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-11.1-11.5",
+      "deliverables": "Curation, ordering and sharing of the best photos",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "BL", "id": "BL.3", "task": "Backlog: Personal/Instant Mode (v1.1)",
+      "milestone": "BL",
+      "id": "BL.3",
+      "task": "Backlog: Personal/Instant Mode (v1.1)",
       "description": "Capture without an event and send results to several recipients",
-      "module": "apps/web, services/media", "status": "Not Started",
-      "red": "", "green": "", "coverage": "", "frs": "FR-10.1-10.7",
-      "deliverables": "Deferred until Event Mode is stable", "updated": "2026-09-19"
+      "module": "apps/web, services/media",
+      "status": "Not Started",
+      "red": "",
+      "green": "",
+      "coverage": "",
+      "frs": "FR-10.1-10.7",
+      "deliverables": "Deferred until Event Mode is stable",
+      "updated": "2026-09-19"
     },
     {
-      "milestone": "M8", "id": "T9.1", "task": "Task 9: RBAC foundation",
+      "milestone": "M8",
+      "id": "T9.1",
+      "task": "Task 9: RBAC foundation",
       "description": "RBAC schema (roles, menus, dropdowns, actions/permissions) and the services/rbac backend package; events:create gated on the already-shipped create-event route",
-      "module": "internal/db (0004, 0005), services/rbac, services/event, cmd/api", "status": "Completed",
+      "module": "internal/db (0004, 0005), services/rbac, services/event, cmd/api",
+      "status": "Completed",
       "red": "85ac425 e76992d 08d0812 68ae150",
       "green": "cf5f3a8 b85cbb8 1bc1ec4 bb79173",
       "coverage": "services/rbac 81.9%; services/event 91.3%; cmd/api 83.3%",
@@ -293,9 +600,12 @@
       "updated": "2026-09-23"
     },
     {
-      "milestone": "M8", "id": "T9.2", "task": "Task 9: RBAC foundation",
+      "milestone": "M8",
+      "id": "T9.2",
+      "task": "Task 9: RBAC foundation",
       "description": "Frontend: rbac API client, best-effort profile fetch in the root layout, dynamic Nav, dark theme palette, and the new /settings page with real EN/ID switching",
-      "module": "apps/web", "status": "Completed",
+      "module": "apps/web",
+      "status": "Completed",
       "red": "14bc5fe 6dea65a 4be3c95",
       "green": "21fbdb5 e1cb469 23963e0 d98a473 694ba26 99c2c86",
       "coverage": "184 tests pass; 97.16% statements / 89.65% branches / 97.6% functions / 99.75% lines; svelte-check 0 errors/0 warnings",
@@ -304,10 +614,15 @@
       "updated": "2026-09-23"
     },
     {
-      "milestone": "M8", "id": "T9.3", "task": "Task 9: RBAC foundation",
+      "milestone": "M8",
+      "id": "T9.3",
+      "task": "Task 9: RBAC foundation",
       "description": "Real-stack verification and docs/tracking sync for Task 8",
-      "module": "docs, docs/tracking, CLAUDE.md", "status": "Completed",
-      "red": "n/a (documentation)", "green": "n/a (docs/ is gitignored, not committed)", "coverage": "n/a",
+      "module": "docs, docs/tracking, CLAUDE.md",
+      "status": "Completed",
+      "red": "n/a (documentation)",
+      "green": "n/a (docs/ is gitignored, not committed)",
+      "coverage": "n/a",
       "frs": "",
       "deliverables": "scripts/check.sh run against Docker Redis+Mailpit and a local Postgres (proto-gen --check, gofmt/vet/lint, go test -cover, svelte-check, vitest coverage, real-stack Playwright e2e); FSD 3.5/5/6/8.6/10.1/11.1 updates; CLAUDE.md bullets for services/rbac and the two new frontend surfaces; this tracker",
       "updated": "2026-09-23"
@@ -315,216 +630,484 @@
   ],
   "changelog": [
     {
-      "milestone": "M8", "module": "docs, docs/tracking", "task": "T9.3",
+      "milestone": "M8",
+      "module": "docs, docs/tracking",
+      "task": "T9.3",
       "summary": "Verified the RBAC foundation against the real stack (Docker Redis+Mailpit, local Postgres, scripts/check.sh) and synced the FSD, CLAUDE.md and this tracker for Task 9.",
       "breaking": "None.",
       "decisions": "RBAC isn't tied to a numbered FR yet; no ID was invented (see FSD 11.1). Menu nesting and the dropdown tables are built and tested but unseeded, since no second real menu destination or dropdown consumer exists yet. Numbered this Task 9, not Task 8: the FSD (gitignored, not tracked here before now) already used 'Task 8' for a planned Milestone 2 migration (guest_sessions/media, FSD change-note v2.9→v2.10) that has no corresponding code or tracker entry yet — a pre-existing drift between the FSD and this tracker, left as discovered rather than silently reconciled. docs/ is gitignored, so these edits are not versioned in git.",
-      "commits": "n/a", "date": "2026-09-23"
+      "commits": "n/a",
+      "date": "2026-09-23"
     },
     {
-      "milestone": "M8", "module": "apps/web", "task": "T9.2",
+      "milestone": "M8",
+      "module": "apps/web",
+      "task": "T9.2",
       "summary": "Added the rbac API client, a best-effort profile fetch in the root layout, a dynamic Nav component, a real dark theme palette, and a new /settings page with real EN/ID language and theme switching.",
       "breaking": "The root layout's load() now returns a required profile field, which is merged into every page's PageData type (existing dashboard tests updated to pass profile: null).",
       "decisions": "Only the nav and the new settings page get real i18n; the three existing host pages keep hardcoded Indonesian text (a larger, separate retrofit). A failed/401 profile fetch resolves to profile: null rather than throwing, so /auth/login never breaks. PATCH only sets concrete theme/language values, not 'clear back to inherited' (fast-follow).",
-      "commits": "14bc5fe e1cb469 6dea65a 23963e0 d98a473 694ba26 4be3c95 99c2c86 21fbdb5", "date": "2026-09-23"
+      "commits": "14bc5fe e1cb469 6dea65a 23963e0 d98a473 694ba26 4be3c95 99c2c86 21fbdb5",
+      "date": "2026-09-23"
     },
     {
-      "milestone": "M8", "module": "internal/db, services/rbac, services/event, cmd/api", "task": "T9.1",
+      "milestone": "M8",
+      "module": "internal/db, services/rbac, services/event, cmd/api",
+      "task": "T9.1",
       "summary": "Implemented the RBAC foundation for real: migrations for roles/menus/dropdowns/actions/permissions, a services/rbac package (Postgres repository, Service resolving per-role menus/actions/dropdowns/preferences with a host-then-role-then-global fallback chain), GET /api/v1/auth/me and PATCH /api/v1/me/preferences, and events:create enforcement on the already-shipped POST /api/v1/events.",
       "breaking": "POST /api/v1/events now requires the events:create permission in addition to a host session; every existing host is granted it by default in the seed, so behavior is unchanged unless a permission is explicitly revoked.",
       "decisions": "Fallback-chain and ancestor-inclusion logic lives in Go (table-driven tested), not PL/pgSQL, matching this codebase's zero-stored-procedure convention; the one exception is a menu cycle-prevention trigger, a genuine data-integrity invariant a CHECK can't express. Seed data stays minimal and real: 2 flat menus (events_new, settings), 2 enforced permissions (events:create, profile:update); dropdowns and nested menus are schema-complete and tested but unseeded, since no real consumer exists yet. REST only, no gRPC, for /auth/me (fast-follow, mirrors Task 5's precedent). No permission-check caching (single API instance).",
-      "commits": "85ac425 cf5f3a8 e76992d b85cbb8 08d0812 1bc1ec4 68ae150 bb79173", "date": "2026-09-23"
+      "commits": "85ac425 cf5f3a8 e76992d b85cbb8 08d0812 1bc1ec4 68ae150 bb79173",
+      "date": "2026-09-23"
     },
     {
-      "milestone": "M1", "module": "docs", "task": "T7.3",
+      "milestone": "M1",
+      "module": "docs",
+      "task": "T7.3",
       "summary": "Updated the FSD to v2.9, CLAUDE.md, the tracking README (timed-check protocol) and this tracker for Task 7.",
       "breaking": "None.",
       "decisions": "Milestone 1 is complete except T7.2 (human timed sessions), which stays Pending Verification. FR-09.1 stays Partial because SMS OTP is not built. docs/ tracker files are versioned; FSD/PRD/BRD .md and .pdf are still ignored.",
-      "commits": "n/a", "date": "2026-09-20"
+      "commits": "n/a",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "apps/web (tests/e2e), scripts", "task": "T7.1",
+      "milestone": "M1",
+      "module": "apps/web (tests/e2e), scripts",
+      "task": "T7.1",
       "summary": "Added Playwright end-to-end tests that drive Chrome through the Vite proxy to the real API, Postgres, Redis and Mailpit (scripts/e2e.sh), and made scripts/check.sh run them; timed the scripted host flow against the 3-minute target.",
       "breaking": "scripts/check.sh now needs Docker (Redis + Mailpit up), Chrome and TEST_DATABASE_URL; SKIP_E2E=1 skips the e2e step with a loud notice. Port 8080 is held by an unrelated Apache service on the dev machine, so e2e uses 8081/9091/5174.",
       "decisions": "Installed Chrome instead of downloading Playwright browsers; e2e uses a throwaway sela_e2e_<pid> database on the local Postgres and resets only rl:/attempts:/lock: keys on the compose Redis; one unique email per test because of the OTP rate limits; the QR PNG is decoded with jsqr to prove it encodes the short link; scripted time is a lower bound and not the PRD metric. A typescript review found no CRITICAL/HIGH; the MEDIUMs (unguarded database-URL rewrite, unchecked Redis container, one-shot QR load check) were fixed in 7b11984. Also added .gitattributes so shell scripts keep LF.",
-      "commits": "58b435f 56159ff 29d31b5 70c75d0 fcdfe29 44e0983 6037092 d34c798 96d0a2a 7b11984", "date": "2026-09-20"
+      "commits": "58b435f 56159ff 29d31b5 70c75d0 fcdfe29 44e0983 6037092 d34c798 96d0a2a 7b11984",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "deploy, cmd/api", "task": "T3.8",
+      "milestone": "M1",
+      "module": "deploy, cmd/api",
+      "task": "T3.8",
       "summary": "Verified the email OTP flow live against docker compose Redis and Mailpit with the real API; all checks passed without service changes.",
       "breaking": "None.",
       "decisions": "Verification lives in apps/web/tests/e2e/auth-live.spec.ts so it is repeatable; compose's postgres was not used because a local PostgreSQL 17 owns 5432.",
-      "commits": "n/a (verification; tests in 44e0983)", "date": "2026-09-20"
+      "commits": "n/a (verification; tests in 44e0983)",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "docs", "task": "T6.2",
+      "milestone": "M1",
+      "module": "docs",
+      "task": "T6.2",
       "summary": "Updated the FSD to v2.8 (10.1 implementation note, change row, 11.1 status for FR-01.1, FR-01.2, FR-01.3, FR-09.1), CLAUDE.md and this tracker for Task 6.",
       "breaking": "None.",
       "decisions": "FR-01.1 to FR-01.3 are now Completed; FR-09.1 stays Partial (SMS not built, live Redis/SMTP verification pending). Category default numbers remain tbd for product. docs/ is gitignored, so these edits are not versioned.",
-      "commits": "n/a", "date": "2026-09-20"
+      "commits": "n/a",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "apps/web", "task": "T6.1",
+      "milestone": "M1",
+      "module": "apps/web",
+      "task": "T6.1",
       "summary": "Built the host web flow: /auth/login (email OTP), /events/new (category picker, details, collapsed overrides), /events/[id] (short link, QR, downloads); API client with credentials, timeout, status and Retry-After; jsdom component tests; /api dev proxy.",
       "breaking": "None for the API. The web app is now a client-side SPA (ssr off) and expects /api on its own origin (Vite proxy in dev; a reverse proxy is needed in deployment).",
       "decisions": "Time zone is a read-only WIB label because POST /api/v1/events accepts none (user chose this over extending the backend). Signed-out hosts are detected by a 401 and sent to /auth/login?next=..., because there is no session-check endpoint; the typed form is lost on that bounce. Components are unit-tested with mocked API modules; the real sign-in path was not exercised end to end (no Redis/Mailpit). Review fixes: 15 s request timeout, hidden reveal delay reset, no duplicate create after a failed navigation, reload on route id change. A real-browser check found resolve.conditions: [] in vite.config.ts broke onMount in dev and build (fixed, regression test src/config.test.ts).",
-      "commits": "64bb0d2 e22fc04 840a9e6 abfcf99 9718420 2185cb4 deb9be8 a625187 d205277 532c966 d1100f0 94f617f 1d11def 41bd0e7 7e82db3 1b66d55 63cce8a e89ee60", "date": "2026-09-20"
+      "commits": "64bb0d2 e22fc04 840a9e6 abfcf99 9718420 2185cb4 deb9be8 a625187 d205277 532c966 d1100f0 94f617f 1d11def 41bd0e7 7e82db3 1b66d55 63cce8a e89ee60",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "services/event", "task": "T5.1",
+      "milestone": "M1",
+      "module": "services/event",
+      "task": "T5.1",
       "summary": "Added the public short-link resolver GET /e/{short_code} returning guest-safe event metadata; short links and QR codes now encode {SHORT_LINK_BASE_URL}/e/{code}.",
       "breaking": "Short links/QR codes created before this change lack /e/ (dev/test data only).",
       "decisions": "Invalid, unknown, non-active and expired codes all return one identical 404; 200 JSON rather than a redirect (no guest PWA yet); no rate limiting yet (follow-up); no proto change.",
-      "commits": "1c6b579 4a9208e 1c6fa33 97bdbe1 e8c01ae 0e537e9 bebb849", "date": "2026-09-20"
+      "commits": "1c6b579 4a9208e 1c6fa33 97bdbe1 e8c01ae 0e537e9 bebb849",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "internal/httpx, internal/health, cmd/api", "task": "T1.1",
+      "milestone": "M1",
+      "module": "internal/httpx, internal/health, cmd/api",
+      "task": "T1.1",
       "summary": "Added the shared JSON envelope {success, data, error}, a GET /healthz handler and an HTTP entrypoint with graceful shutdown.",
       "breaking": "None.",
       "decisions": "Envelope follows the project API-response rule; health checks no dependencies (liveness only).",
-      "commits": "aae2ee6 bbc37ea 0bd97a3", "date": "2026-09-19"
+      "commits": "aae2ee6 bbc37ea 0bd97a3",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "apps/web", "task": "T1.2",
+      "milestone": "M1",
+      "module": "apps/web",
+      "task": "T1.2",
       "summary": "Scaffolded SvelteKit with Vitest (80% threshold) and an envelope parser mirroring the Go envelope.",
       "breaking": "None.",
       "decisions": "npm instead of pnpm (pnpm not installed); Node >= 20.19 required by Vite 8, so a newer Node is prepended to PATH per command. 3 low-severity npm audit findings (transitive cookie) left unfixed because the suggested fix is a breaking downgrade.",
-      "commits": "5fa9976 4443ea5", "date": "2026-09-19"
+      "commits": "5fa9976 4443ea5",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "deploy, scripts/check.sh", "task": "T1.3",
+      "milestone": "M1",
+      "module": "deploy, scripts/check.sh",
+      "task": "T1.3",
       "summary": "Added Docker Compose services (Postgres, Redis, Mailpit) bound to localhost with required credentials, .env.example and scripts/check.sh.",
       "breaking": "None.",
       "decisions": "Compose refuses to start without credentials; check.sh became the single validation entrypoint.",
-      "commits": "20ade0e cbeb530", "date": "2026-09-19"
+      "commits": "20ade0e cbeb530",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "internal/db", "task": "T2.1",
+      "milestone": "M1",
+      "module": "internal/db",
+      "task": "T2.1",
       "summary": "Added the goose migration runner and migrations 0001-0003: hosts, event_categories (six seeded presets) and events.",
       "breaking": "New database schema (three migrations). Column names are English forms of FSD 5 (batas_jepretan -> shot_limit, etc.).",
       "decisions": "Undefined category defaults are stored as 'tbd', never invented. goose pinned to v3.26.0 because v3.28 requires Go 1.26 and silently raised the module's Go version. Cover image and branding columns deferred. Categories are presets, not gates. PII encryption deferred (needs a blind index for the unique lookups).",
-      "commits": "9fe108b 45b058c b0b5b25", "date": "2026-09-19"
+      "commits": "9fe108b 45b058c b0b5b25",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "cmd/migrate", "task": "T3.1",
+      "milestone": "M1",
+      "module": "cmd/migrate",
+      "task": "T3.1",
       "summary": "Added a CLI that applies (up) or reverts (down) migrations against DATABASE_URL.",
       "breaking": "None.",
       "decisions": "Default command is up; DSN is never printed; run() is injectable for tests.",
-      "commits": "f5935c9 a1e047f b2ef0ef", "date": "2026-09-19"
+      "commits": "f5935c9 a1e047f b2ef0ef",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "apps/api (structure)", "task": "T3.2",
+      "milestone": "M1",
+      "module": "apps/api (structure)",
+      "task": "T3.2",
       "summary": "Moved all Go backend code under apps/api and moved go.mod there with the module path unchanged.",
       "breaking": "STRUCTURAL: cmd/, internal/ and go.mod moved to apps/api; the db package became internal/db (import path github.com/Briyantama/SELA/internal/db). Go commands must now run from apps/api; scripts/check.sh updated.",
       "decisions": "Migrations live inside internal/db because Go embed cannot reference parent directories. Refactor verified by all existing tests passing unchanged.",
-      "commits": "aebe62e", "date": "2026-09-19"
+      "commits": "aebe62e",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "api/proto/v1, gen/go", "task": "T3.3",
+      "milestone": "M1",
+      "module": "api/proto/v1, gen/go",
+      "task": "T3.3",
       "summary": "Added auth.proto and event.proto, buf configuration and scripts/proto-gen.sh with a --check drift mode.",
       "breaking": "New build-time requirement: buf, protoc-gen-go and protoc-gen-go-grpc are needed to regenerate; check.sh now fails on stale generated code.",
       "decisions": "Separate proto packages (sela.auth.v1, sela.event.v1) share one directory, so buf lint exceptions PACKAGE_DIRECTORY_MATCH and DIRECTORY_SAME_PACKAGE were added. event.proto is contract only. CreateEventRequest has no host_id: ownership comes from the session.",
-      "commits": "409a125 24c7281", "date": "2026-09-19"
+      "commits": "409a125 24c7281",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "internal/config", "task": "T3.4",
+      "milestone": "M1",
+      "module": "internal/config",
+      "task": "T3.4",
       "summary": "Added fail-fast environment loading with aggregated errors and redacted printing.",
       "breaking": "The API now refuses to start without DATABASE_URL, REDIS_ADDR, SMTP_ADDR, SMTP_FROM and OTP_HMAC_KEY (>= 32 characters).",
       "decisions": "Secrets never appear in errors or String(); COOKIE_SECURE defaults to true.",
-      "commits": "730db37 3b1ab82", "date": "2026-09-19"
+      "commits": "730db37 3b1ab82",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "services/auth", "task": "T3.5",
+      "milestone": "M1",
+      "module": "services/auth",
+      "task": "T3.5",
       "summary": "Implemented the OTP sign-in core: hashed single-use 5-minute codes, rate limits, lockout, hashed 12-hour sessions, Postgres find-or-create host and an SMTP mailer.",
       "breaking": "Adds runtime dependencies on Redis and an SMTP relay.",
       "decisions": "Code consumed before host creation so concurrent verifies cannot mis-report IsNewHost; attempts counted only while a code is outstanding to prevent lockout of addresses that never requested a code; Redis keys use keyed hashes (no raw email or IP); opaque server-side sessions instead of JWT; refresh token and logout deferred (partial FR-SEC.4).",
-      "commits": "1043ded 3c45e13", "date": "2026-09-19"
+      "commits": "1043ded 3c45e13",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "services/auth", "task": "T3.6",
+      "milestone": "M1",
+      "module": "services/auth",
+      "task": "T3.6",
       "summary": "Added REST and gRPC adapters over one Flow interface, plus RequireHost middleware.",
       "breaking": "None.",
       "decisions": "HTTP handlers live in services/auth (not internal/httpx), reusing the httpx envelope. Session token only in the HttpOnly cookie (HTTP) or the response (gRPC). X-Forwarded-For deliberately ignored. Fixed generic messages for internal errors.",
-      "commits": "ffed71f ce4729e", "date": "2026-09-19"
+      "commits": "ffed71f ce4729e",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "cmd/api", "task": "T3.7",
+      "milestone": "M1",
+      "module": "cmd/api",
+      "task": "T3.7",
       "summary": "Wired config, Postgres, Redis, SMTP and the auth service into one process serving HTTP and gRPC, with an end-to-end test.",
       "breaking": "cmd/api's run() now takes (ctx, getenv); the server no longer starts without the required environment.",
       "decisions": "Services stay packages in one process (deviation from separate deployables, recorded in FSD 2.6). go test -race unavailable locally (needs cgo/gcc); run it in CI.",
-      "commits": "5a3dbe0 2bffd81 578bab2 218243d 573d78f", "date": "2026-09-19"
+      "commits": "5a3dbe0 2bffd81 578bab2 218243d 573d78f",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "docs", "task": "T3.9",
+      "milestone": "M1",
+      "module": "docs",
+      "task": "T3.9",
       "summary": "Updated the FSD to v2.5 and created this tracker with its build script and process.",
       "breaking": "None.",
       "decisions": "PRD and BRD intentionally unchanged: implementation so far does not change product scope, and their documented inconsistencies (MVP category count, free-tier watermark, BR-17 numbering) stay open. docs/ is gitignored, so these updates are not in commits.",
-      "commits": "n/a", "date": "2026-09-19"
+      "commits": "n/a",
+      "date": "2026-09-19"
     },
     {
-      "milestone": "M1", "module": "services/event", "task": "T4.1",
+      "milestone": "M1",
+      "module": "services/event",
+      "task": "T4.1",
       "summary": "Added the event domain: category presets with raw and effective defaults, event creation with unique short codes and private access tokens, PNG/SVG QR codes of the short link, and host-scoped retrieval.",
       "breaking": "None to existing endpoints; new tables are read and written (events, event_categories) with no schema change.",
       "decisions": "FSD does not define what a tbd default falls back to, so the fallback is unlimited shots and instant reveal, derived from BRD 7/10 and FSD 4.5. Host override beats a defined category default beats the fallback. Wedding reveal_at = start of the event day (Asia/Jakarta) + 24h, an interpretation of 'delayed 1 day' that needs product confirmation. shot_limit 0 means explicitly unlimited. reveal_delay_hours capped at 8760 (safety limit, not in the docs). Not-owner and not-found are both ErrNotFound so existence is not leaked. Timezone data is embedded (time/tzdata). Short-link resolver deliberately deferred.",
-      "commits": "acbece7 b726530", "date": "2026-09-20"
+      "commits": "acbece7 b726530",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "services/event, cmd/api", "task": "T4.2",
+      "milestone": "M1",
+      "module": "services/event, cmd/api",
+      "task": "T4.2",
       "summary": "Exposed the event use cases over REST and gRPC and wired them into the API process.",
       "breaking": "cmd/api's newMux and newGRPCServer now take the event dependencies; the gRPC server always installs the host interceptor, so every method outside the public allowlist requires a Bearer session.",
       "decisions": "Category listing is public (presets, not host data); everything else needs a session. The RPC keeps the name ListEventCategories (existing contract) instead of ListCategories. Responses are built from types that have no host_id or access_token field, and request bodies containing host_id are rejected. HTTP handlers live in services/event and reuse the httpx envelope. golangci-lint timeout raised to 5 minutes in check.sh.",
-      "commits": "6c65e04 094e6bb aeb1251 cb7f51b 51a1ef0", "date": "2026-09-20"
+      "commits": "6c65e04 094e6bb aeb1251 cb7f51b 51a1ef0",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "internal/httpx, internal/config, api/proto/v1, services/auth", "task": "T4.3",
+      "milestone": "M1",
+      "module": "internal/httpx, internal/config, api/proto/v1, services/auth",
+      "task": "T4.3",
       "summary": "Extracted the strict JSON body decoder into httpx, added the required SHORT_LINK_BASE_URL setting, extended event.proto, and added a deny-by-default gRPC host interceptor.",
       "breaking": "SHORT_LINK_BASE_URL is now required at startup (the API refuses to start without it). event.proto changes are additive (new field numbers).",
       "decisions": "The auth handlers were refactored onto httpx.DecodeJSON with the existing tests as the safety net. The interceptor reuses the auth package's HostID and error mapping instead of duplicating them.",
-      "commits": "0a61dd6 3861ee6 1c9b2a8 1110a02 6f8cf8e ff5ae81 b1a51e3 da51888", "date": "2026-09-20"
+      "commits": "0a61dd6 3861ee6 1c9b2a8 1110a02 6f8cf8e ff5ae81 b1a51e3 da51888",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M1", "module": "docs", "task": "T4.4",
+      "milestone": "M1",
+      "module": "docs",
+      "task": "T4.4",
       "summary": "Updated the FSD to v2.6 and this tracker for Task 4.",
       "breaking": "None.",
       "decisions": "PRD and BRD still unchanged; the fallback defaults are recorded in FSD 4.1 as derived from BRD 7/10 for product review.",
-      "commits": "n/a", "date": "2026-09-20"
+      "commits": "n/a",
+      "date": "2026-09-20"
     },
     {
-      "milestone": "M2", "module": "internal/db, services/media", "task": "T8.1",
+      "milestone": "M2",
+      "module": "internal/db, services/media",
+      "task": "T8.1",
       "summary": "Added migration 0004: guest_sessions, media and events.involves_minors, with schema tests and the media domain types.",
       "breaking": "New migration 0004 (additive). events gains involves_minors boolean NOT NULL DEFAULT false.",
       "decisions": "No sisa_jepretan column (Redis holds the live counter; the durable count comes from media rows). No browser fingerprint (FSD 8.11 data minimisation). processing_state is separate from the moderation status. The composite key media.(event_id, session_id) -> guest_sessions keeps a session inside its own event. RESTRICT deletes, so the retention job removes stored objects first. WebP accepted beside the FR-04.1 formats because the camera pipeline outputs it (FSD 7).",
-      "commits": "6d1e157 720b11f", "date": "2026-09-23"
+      "commits": "6d1e157 720b11f",
+      "date": "2026-09-23"
     },
     {
-      "milestone": "M2", "module": "docs", "task": "T8.1",
+      "milestone": "M2",
+      "module": "docs",
+      "task": "T8.1",
       "summary": "Updated the FSD to v2.10 (Section 5 implementation notes for migration 0004) and this tracker.",
       "breaking": "None.",
       "decisions": "Guest visibility stays as FSD 3.2 and 4.5 define it (own media, plus the Hall of Fame after reveal); the gallery queries come in a later task.",
-      "commits": "n/a", "date": "2026-09-23"
+      "commits": "n/a",
+      "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "internal/db, services/media",
+      "task": "T8.1",
+      "summary": "Renumbered the guest_sessions/media migration from 0004 to 0006 so it runs after the RBAC migrations 0004/0005; added a test that migration versions are unique and that guest media runs after RBAC.",
+      "breaking": "Migration file renamed 0004_guest_sessions_media.sql -> 0006_guest_sessions_media.sql (SQL unchanged). Local databases that applied feat/guest-media alone must be recreated.",
+      "decisions": "Merging feat/guest-media and feat/rbac-foundation into development left two version-0004 files, which goose rejects. Guest media depends only on events (0003), so it moves last. Guest visibility stays as FSD 3.2/4.5 define it. FSD bumped to v2.12.",
+      "commits": "9328b69 badcd79",
+      "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "services/media, internal/config",
+      "task": "T8.2",
+      "summary": "Added anonymous guest sessions (POST /api/v1/events/{event_id}/guest-session, sela_guest cookie scoped to the event's API path) and an atomic Redis shot quota with rollback.",
+      "breaking": "New optional setting GUEST_SESSION_TTL (default 72h). New Redis keys guest:* and quota:*.",
+      "decisions": "Session creation is a POST per FSD 6, not a side effect of GET /e/{short_code}, so link previews and crawlers create nothing. The cookie Path is /api/v1/events/{event_id} because a /e/ path would never reach the API. The quota counter reseeds from media rows, which stay the source of truth. Guest tokens reuse OTP_HMAC_KEY under their own domain prefix. The 72h TTL is a configurable default; the docs define none.",
+      "commits": "83213fa 92f231d 69a73cb 4bb836c",
+      "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "internal/objstore, services/media, services/media/strip, cmd/api, deploy, scripts",
+      "task": "T8.3",
+      "summary": "Added the S3 object store with a MinIO dev bucket, direct browser uploads via pre-signed PUT, magic-byte validation and metadata stripping, an upload sweeper, and the my-media, hall-of-fame and host media endpoints with visibility enforced in SQL.",
+      "breaking": "New required settings S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY (S3_PATH_STYLE optional). deploy/docker-compose.yml adds minio and minio-init (quay.io images; needs MINIO_ROOT_USER/PASSWORD). check.sh and e2e.sh require MinIO. New deps aws-sdk-go-v2 and golang.org/x/image v0.45.0 (last release on Go 1.25).",
+      "decisions": "Guest visibility stays FSD 3.2: own media only, plus the host-curated Hall of Fame after reveal; the brief's 'revealed = all media' rule was not adopted. Photos only (JPEG/PNG/WebP, 20 MB); HEIC and video are refused rather than stored unstripped. Stripping uses allow-lists and must be idempotent. noindex is sent for every event, not only children's events. The upload endpoint is split into uploads + complete instead of FSD 6's single POST .../media.",
+      "commits": "459695b 82f84fd 4263b3d 3bfd703 d8a0998 22eb226 ac399ad b08dd6a",
+      "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "docs",
+      "task": "T8.3",
+      "summary": "Updated the FSD to v2.13 (2.4, 5, 6, 8.5-8.7, 11.1) and this tracker; added follow-ups T8.4 (HEIC/video stripping) and T8.5 (guest rate limits).",
+      "breaking": "None.",
+      "decisions": "FR-02.2 marked Completed at the API level; the rest stay Partial until the PWA and M3 gallery UI exist.",
+      "commits": "n/a",
+      "date": "2026-09-23"
+    },
+    {
+      "milestone": "M2",
+      "module": "services/auth, services/media",
+      "task": "T8.5",
+      "summary": "Added a reusable fixed-window limiter in auth and applied it to guest-session creation and upload requests (FR-SEC.9); FSD v2.14 (6, 8, 11.1).",
+      "breaking": "None. media.HTTPConfig gained an optional Limiter; nil disables limiting.",
+      "decisions": "Limits are constants (not env) for now. Keys use the connection address only; behind a proxy all guests share a bucket unless the proxy preserves it. FR-SEC.9 stays Partial until share-link creation is limited.",
+      "commits": "aba5d19 bbd766d fc23d8c 420a2b4 47b0ad4",
+      "date": "2026-09-25"
+    },
+    {
+      "milestone": "M2",
+      "module": "services/event, services/media, cmd/api, apps/web",
+      "task": "T8.6",
+      "summary": "Moved the short-link resolver to GET /api/v1/e/{short_code} and added POST /api/v1/e/{short_code}/guest-session, so /e/{code} is free for the guest PWA page and a scanned QR opens a session in one round trip; FSD v2.15 (6, 8.6, 11.1).",
+      "breaking": "GET /e/{short_code} is no longer served by the API. Only two call sites used it (cmd/api/e2e_test.go, apps/web host e2e); both moved. The short link and QR are unchanged and still read {base}/e/{code}. media.Guests gained StartSessionByCode, so the three stub implementations were updated.",
+      "decisions": "Neither route can nest under /api/v1/events/: ServeMux rejects a two-segment pattern there as conflicting with {id}/qr.png, and a by-code guest-session route would collide with {event_id}/media/{media_id}. /api/v1/e/ was chosen to mirror the guest-facing link. The by-code route cannot resume, because the guest cookie is scoped to /api/v1/events/{event_id} and is never sent to it; it is first-contact only and returns event_id so the client resumes through the {event_id} route. Widening the cookie path was rejected to keep the FSD 8.6 scope. media keeps its own base62 pattern rather than importing services/event.",
+      "commits": "4651987 b6509df e7d5d53 5a80691",
+      "date": "2026-09-25"
     }
   ],
   "requirements": {
-    "FR-01.1": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2, T6.1", "evidence": "category presets with effective defaults over REST and gRPC; host category picker at /events/new shows each preset's defaults (category default numbers are still tbd, awaiting product)"},
-    "FR-01.2": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2, T6.1", "evidence": "create-event API with validation; host form at /events/new with name and date required and overrides collapsed; time zone shown read-only as WIB because the API takes none"},
-    "FR-01.3": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2, T5.1, T6.1", "evidence": "unique short_code, short_link = base/e/code, owner-only QR PNG/SVG, public GET /e/{short_code} resolver (guest-safe metadata, identical 404s); host result screen /events/[id] with copy link and PNG/SVG download"},
-    "FR-01.4": {"milestone": "M1", "status": "Completed", "tasks": "T2.1, T4.1, T4.2", "evidence": "shot_limit (NULL/0 = unlimited), reveal_mode and reveal_at stored per event; per-category numeric defaults remain tbd pending product"},
-    "FR-01.5": {"milestone": "M5", "tasks": "M5.1"},
-    "FR-01.6": {"milestone": "M5", "tasks": "M5.1"},
-    "FR-02.2": {"milestone": "M2", "status": "Partial", "tasks": "T8.1", "evidence": "guest_sessions table (one row per device session, optional nickname, no fingerprint); session creation and the guest cookie are not built yet"},
-    "FR-09.1": {"milestone": "M1", "status": "Partial", "tasks": "T3.3, T3.5, T3.6, T3.7, T3.8, T6.1, T7.1", "evidence": "email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); verified live against real Redis and Mailpit (T3.8, T7.1); SMS not implemented"},
-    "FR-09.2": {"milestone": "M5", "tasks": "M5.1"},
-    "FR-09.3": {"milestone": "M5", "tasks": "M5.1"},
-    "FR-SEC.4": {"milestone": "M1", "status": "Partial", "tasks": "T3.5, T3.6, T3.10", "evidence": "HttpOnly/SameSite cookie, hashed expiring tokens; refresh and revocation pending"},
-    "FR-SEC.5": {"milestone": "M6", "tasks": "M6.1"},
-    "FR-SEC.9": {"milestone": "M1", "status": "Partial", "tasks": "T3.5, T3.6", "evidence": "Redis rate limiting on OTP endpoints; upload and share-link limits pending"}
+    "FR-01.1": {
+      "milestone": "M1",
+      "status": "Completed",
+      "tasks": "T2.1, T4.1, T4.2, T6.1",
+      "evidence": "category presets with effective defaults over REST and gRPC; host category picker at /events/new shows each preset's defaults (category default numbers are still tbd, awaiting product)"
+    },
+    "FR-01.2": {
+      "milestone": "M1",
+      "status": "Completed",
+      "tasks": "T2.1, T4.1, T4.2, T6.1",
+      "evidence": "create-event API with validation; host form at /events/new with name and date required and overrides collapsed; time zone shown read-only as WIB because the API takes none"
+    },
+    "FR-01.3": {
+      "milestone": "M1",
+      "status": "Completed",
+      "tasks": "T2.1, T4.1, T4.2, T5.1, T6.1",
+      "evidence": "unique short_code, short_link = base/e/code, owner-only QR PNG/SVG, public GET /e/{short_code} resolver (guest-safe metadata, identical 404s); host result screen /events/[id] with copy link and PNG/SVG download"
+    },
+    "FR-01.4": {
+      "milestone": "M1",
+      "status": "Completed",
+      "tasks": "T2.1, T4.1, T4.2",
+      "evidence": "shot_limit (NULL/0 = unlimited), reveal_mode and reveal_at stored per event; per-category numeric defaults remain tbd pending product"
+    },
+    "FR-01.5": {
+      "milestone": "M5",
+      "tasks": "M5.1"
+    },
+    "FR-01.6": {
+      "milestone": "M5",
+      "tasks": "M5.1"
+    },
+    "FR-02.2": {
+      "milestone": "M2",
+      "status": "Completed",
+      "tasks": "T8.1, T8.2",
+      "evidence": "POST /api/v1/events/{event_id}/guest-session creates or resumes one anonymous session per browser via the sela_guest cookie; Redis stores only the token hash"
+    },
+    "FR-09.1": {
+      "milestone": "M1",
+      "status": "Partial",
+      "tasks": "T3.3, T3.5, T3.6, T3.7, T3.8, T6.1, T7.1",
+      "evidence": "email OTP over REST and gRPC; host sign-in page /auth/login (two steps, localised errors, rate-limit and lockout wait); verified live against real Redis and Mailpit (T3.8, T7.1); SMS not implemented"
+    },
+    "FR-09.2": {
+      "milestone": "M5",
+      "tasks": "M5.1"
+    },
+    "FR-09.3": {
+      "milestone": "M5",
+      "tasks": "M5.1"
+    },
+    "FR-SEC.4": {
+      "milestone": "M1",
+      "status": "Partial",
+      "tasks": "T3.5, T3.6, T3.10",
+      "evidence": "HttpOnly/SameSite cookie, hashed expiring tokens; refresh and revocation pending"
+    },
+    "FR-SEC.5": {
+      "milestone": "M6",
+      "tasks": "M6.1"
+    },
+    "FR-SEC.9": {
+      "milestone": "M1",
+      "status": "Partial",
+      "tasks": "T3.5, T3.6, T8.5",
+      "evidence": "Redis rate limiting on OTP endpoints and on guest-session creation and uploads (20 sessions/10 min/IP, 60 uploads/10 min/session, 300 uploads/10 min/IP, fail-closed); share-link creation limit pending"
+    },
+    "FR-02.1": {
+      "milestone": "M2",
+      "status": "Partial",
+      "tasks": "T8.2",
+      "evidence": "guest sessions are only created for active, unexpired events (backend); the PWA camera page is not built yet"
+    },
+    "FR-03.3": {
+      "milestone": "M2",
+      "status": "Partial",
+      "tasks": "T8.2",
+      "evidence": "per-session quota enforced atomically in Redis at upload-URL issue and returned on failure; PWA shutter disabling not built"
+    },
+    "FR-04.1": {
+      "milestone": "M2",
+      "status": "Partial",
+      "tasks": "T8.1, T8.3",
+      "evidence": "20 MB limit and format validation; JPEG/PNG/WebP only for now (HEIC, MP4, MOV refused until T8.4); multi-file UI not built"
+    },
+    "FR-05.5": {
+      "milestone": "M3",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "guest gallery query filters event_id + session_id in SQL (GET .../my-media); gallery UI is M3"
+    },
+    "FR-05.6": {
+      "milestone": "M3",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "host gallery query checks ownership in SQL, no reveal gating (GET .../media); gallery UI is M3"
+    },
+    "FR-SEC.1": {
+      "milestone": "M6",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "media only via short-lived pre-signed PUT/GET on a private bucket; separate media domain not done"
+    },
+    "FR-SEC.2": {
+      "milestone": "M6",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "EXIF/GPS and all other metadata stripped from JPEG/PNG/WebP before storage; HEIC and video refused until T8.4"
+    },
+    "FR-SEC.3": {
+      "milestone": "M6",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "magic bytes must match the declared type for JPEG/PNG/WebP"
+    },
+    "FR-SEC.10": {
+      "milestone": "M6",
+      "status": "Partial",
+      "tasks": "T8.3",
+      "evidence": "X-Robots-Tag noindex, nofollow on every guest API route and the host gallery; web gallery pages not built"
+    }
   },
   "requirement_defaults": {
-    "FR-02": "M2", "FR-03": "M2", "FR-04": "M2", "FR-05": "M3", "FR-06": "M4", "FR-07": "M4",
-    "FR-08": "BL", "FR-10": "BL", "FR-11": "BL", "FR-SEC": "M6"
+    "FR-02": "M2",
+    "FR-03": "M2",
+    "FR-04": "M2",
+    "FR-05": "M3",
+    "FR-06": "M4",
+    "FR-07": "M4",
+    "FR-08": "BL",
+    "FR-10": "BL",
+    "FR-11": "BL",
+    "FR-SEC": "M6"
   },
   "fsd_sections": {
-    "FR-01": "4.1", "FR-02": "4.2", "FR-03": "4.3", "FR-04": "4.4", "FR-05": "4.5", "FR-06": "4.6",
-    "FR-07": "4.7", "FR-08": "4.8", "FR-09": "4.9", "FR-10": "4.10", "FR-11": "4.11", "FR-SEC": "8.12"
+    "FR-01": "4.1",
+    "FR-02": "4.2",
+    "FR-03": "4.3",
+    "FR-04": "4.4",
+    "FR-05": "4.5",
+    "FR-06": "4.6",
+    "FR-07": "4.7",
+    "FR-08": "4.8",
+    "FR-09": "4.9",
+    "FR-10": "4.10",
+    "FR-11": "4.11",
+    "FR-SEC": "8.12"
   }
 }

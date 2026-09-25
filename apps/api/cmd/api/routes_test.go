@@ -18,6 +18,7 @@ import (
 	eventv1 "github.com/Briyantama/SELA/gen/go/event/v1"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/media"
 	"github.com/Briyantama/SELA/services/rbac"
 )
 
@@ -70,11 +71,43 @@ func (stubRBAC) UpdatePreferences(context.Context, string, rbac.PreferencesInput
 
 func (stubRBAC) Has(context.Context, string, rbac.Permission) (bool, error) { return true, nil }
 
+// stubGuests answers every guest call with a fixed, successful outcome for a cookie named "guest".
+type stubGuests struct{}
+
+func (stubGuests) StartSession(context.Context, string, string, *string) (media.StartedSession, error) {
+	return media.StartedSession{Token: "guest", Guest: media.Guest{EventID: "e", SessionID: "s"}, ExpiresIn: time.Hour}, nil
+}
+
+func (stubGuests) StartSessionByCode(context.Context, string, string, *string) (media.StartedSession, error) {
+	return media.StartedSession{Token: "guest", Guest: media.Guest{EventID: "e", SessionID: "s"}, ExpiresIn: time.Hour}, nil
+}
+
+func (stubGuests) Authenticate(_ context.Context, eventID, token string) (media.Guest, error) {
+	if token != "guest" {
+		return media.Guest{}, media.ErrUnauthorized
+	}
+	return media.Guest{EventID: eventID, SessionID: "s"}, nil
+}
+
+func (stubGuests) BeginUpload(context.Context, media.Guest, string, int64) (media.Upload, error) {
+	return media.Upload{MediaID: "m"}, nil
+}
+
+func (stubGuests) CompleteUpload(context.Context, media.Guest, string) (media.Item, error) {
+	return media.Item{}, nil
+}
+
+func (stubGuests) MyMedia(context.Context, media.Guest) ([]media.Item, error)      { return nil, nil }
+func (stubGuests) HallOfFame(context.Context, media.Guest) ([]media.Item, error)   { return nil, nil }
+func (stubGuests) HostMedia(context.Context, string, string) ([]media.Item, error) { return nil, nil }
+
 func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 	// Arrange
 	authHTTP := auth.NewHTTPHandler(stubFlow{}, auth.HTTPConfig{})
 	rbacHTTP := rbac.NewHTTPHandler(stubRBAC{}, authHTTP)
-	mux := newMux(authHTTP, event.NewHTTPHandler(stubEvents{}, authHTTP, rbacHTTP), rbacHTTP)
+	mediaHTTP := media.NewHTTPHandler(stubGuests{}, authHTTP, media.HTTPConfig{})
+	mux := newMux(authHTTP, event.NewHTTPHandler(stubEvents{}, authHTTP, rbacHTTP), rbacHTTP, mediaHTTP)
+	const eventPath = "/api/v1/events/00000000-0000-4000-8000-000000000000"
 
 	tests := []struct {
 		name   string
@@ -98,6 +131,15 @@ func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 		{"profile with a session", http.MethodGet, "/api/v1/auth/me", "", true, http.StatusOK},
 		{"preferences needs a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, false, http.StatusUnauthorized},
 		{"preferences with a session", http.MethodPatch, "/api/v1/me/preferences", `{"theme":"dark"}`, true, http.StatusOK},
+		{"resolver is public", http.MethodGet, "/api/v1/e/AbCdEfGh", "", false, http.StatusOK},
+		{"retired guest pwa path is not served", http.MethodGet, "/e/AbCdEfGh", "", false, http.StatusNotFound},
+		{"guest session is public", http.MethodPost, eventPath + "/guest-session", "", false, http.StatusCreated},
+		{"guest session by short code is public", http.MethodPost, "/api/v1/e/AbCdEfGh/guest-session", "", false, http.StatusCreated},
+		{"guest upload needs the guest cookie", http.MethodPost, eventPath + "/media/uploads", `{"content_type":"image/jpeg","size_bytes":1}`, false, http.StatusUnauthorized},
+		{"my media needs the guest cookie", http.MethodGet, eventPath + "/my-media", "", false, http.StatusUnauthorized},
+		{"hall of fame needs the guest cookie", http.MethodGet, eventPath + "/hall-of-fame", "", false, http.StatusUnauthorized},
+		{"host gallery needs a session", http.MethodGet, eventPath + "/media", "", false, http.StatusUnauthorized},
+		{"host gallery with a session", http.MethodGet, eventPath + "/media", "", true, http.StatusOK},
 		{"unknown route", http.MethodGet, "/api/v1/nothing", "", false, http.StatusNotFound},
 	}
 

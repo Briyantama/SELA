@@ -10,6 +10,7 @@ import (
 	"github.com/Briyantama/SELA/internal/health"
 	"github.com/Briyantama/SELA/services/auth"
 	"github.com/Briyantama/SELA/services/event"
+	"github.com/Briyantama/SELA/services/media"
 	"github.com/Briyantama/SELA/services/rbac"
 )
 
@@ -24,13 +25,15 @@ var publicGRPCMethods = []string{
 // newMux builds the HTTP routes: liveness, the auth endpoints, the event endpoints and the RBAC
 // endpoints (GET /api/v1/auth/me, PATCH /api/v1/me/preferences). The event routes that touch a
 // specific event are guarded by the auth handler's RequireHost middleware, and creating one
-// additionally needs the events:create permission via the RBAC handler.
-func newMux(authHTTP *auth.HTTPHandler, eventHTTP *event.HTTPHandler, rbacHTTP *rbac.HTTPHandler) *http.ServeMux {
+// additionally needs the events:create permission via the RBAC handler. The media routes serve guests
+// (behind their per-event guest cookie) and the host gallery (behind RequireHost).
+func newMux(authHTTP *auth.HTTPHandler, eventHTTP *event.HTTPHandler, rbacHTTP *rbac.HTTPHandler, mediaHTTP *media.HTTPHandler) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.Handler())
 	authHTTP.Register(mux)
 	eventHTTP.Register(mux)
 	rbacHTTP.Register(mux)
+	mediaHTTP.Register(mux)
 	return mux
 }
 

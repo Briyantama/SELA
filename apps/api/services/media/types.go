@@ -1,6 +1,6 @@
 // Package media owns guest and host uploads: guest sessions, the media lifecycle (pending, ready, failed),
 // moderation status, and Hall of Fame flags (FSD 4.3-4.5, 4.7, 5). This file holds the domain types that the
-// schema in migration 0004 stores; the use cases come in later tasks.
+// schema in migration 0006 stores; the use cases come in later tasks.
 package media
 
 import (
@@ -27,7 +27,7 @@ const (
 )
 
 // contentTypes lists the accepted formats and their kind: FR-04.1 (JPEG/PNG/HEIC, MP4/MOV) plus WebP,
-// which the camera pipeline outputs (FSD 7). It mirrors media_content_type_valid in migration 0004.
+// which the camera pipeline outputs (FSD 7). It mirrors media_content_type_valid in migration 0006.
 var contentTypes = map[string]Kind{
 	"image/jpeg":      KindPhoto,
 	"image/png":       KindPhoto,

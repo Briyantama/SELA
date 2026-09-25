@@ -87,7 +87,7 @@ func (h *HTTPHandler) requestOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := h.flow.RequestOTP(r.Context(), body.Email, clientAddr(r))
+	res, err := h.flow.RequestOTP(r.Context(), body.Email, ClientAddr(r))
 	if err != nil {
 		h.writeError(w, err)
 		return
@@ -157,10 +157,10 @@ func (h *HTTPHandler) writeError(w http.ResponseWriter, err error) {
 	}
 }
 
-// clientAddr identifies the caller by its connection address. Forwarded headers are deliberately
+// ClientAddr identifies the caller by its connection address. Forwarded headers are deliberately
 // ignored: any client can spoof them to dodge rate limits. Behind a trusted proxy, configure the
 // proxy to set the connection address instead.
-func clientAddr(r *http.Request) string {
+func ClientAddr(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -14,7 +15,23 @@ const (
 	defaultGRPCPort = "9090"
 	minHMACKeyLen   = 32
 	maxPort         = 65535
+
+	// defaultGuestSessionTTL is how long an anonymous guest session lives. The docs define no value,
+	// so it is a configurable default recorded as pending product input (FSD 8.6).
+	defaultGuestSessionTTL = 72 * time.Hour
 )
+
+// S3 locates the S3-compatible bucket that holds event media (FSD 2.1). The bucket is private: media is
+// only ever reached through short-lived pre-signed URLs (FR-SEC.1).
+type S3 struct {
+	Endpoint        string
+	Region          string
+	Bucket          string
+	AccessKeyID     string
+	SecretAccessKey string
+	// PathStyle addresses the bucket as {endpoint}/{bucket}, which MinIO needs.
+	PathStyle bool
+}
 
 // Config holds every setting the API needs. Secret fields are never printed.
 type Config struct {
@@ -40,6 +57,12 @@ type Config struct {
 	// ShortLinkBaseURL is the public origin (plus optional path prefix) that event short links and
 	// QR codes point to, without a trailing slash. It is configurable so the domain can change (D4).
 	ShortLinkBaseURL string
+
+	// S3 is the media bucket.
+	S3 S3
+
+	// GuestSessionTTL bounds an anonymous guest session and its shot counter in Redis.
+	GuestSessionTTL time.Duration
 }
 
 // Load reads and validates the configuration, reporting every problem at once.
@@ -76,6 +99,38 @@ func Load(getenv func(string) string) (Config, error) {
 		SMTPUsername:  getenv("SMTP_USERNAME"),
 		SMTPPassword:  getenv("SMTP_PASSWORD"),
 		CookieSecure:  true,
+		S3: S3{
+			Region:          required("S3_REGION"),
+			Bucket:          required("S3_BUCKET"),
+			AccessKeyID:     required("S3_ACCESS_KEY_ID"),
+			SecretAccessKey: required("S3_SECRET_ACCESS_KEY"),
+			PathStyle:       true,
+		},
+		GuestSessionTTL: defaultGuestSessionTTL,
+	}
+
+	if raw := required("S3_ENDPOINT"); raw != "" {
+		endpoint, ok := normalizeBaseURL(raw)
+		if !ok {
+			problems = append(problems, "S3_ENDPOINT must be an absolute http or https URL without credentials, query or fragment")
+		}
+		cfg.S3.Endpoint = endpoint
+	}
+
+	if raw := getenv("S3_PATH_STYLE"); raw != "" {
+		pathStyle, err := strconv.ParseBool(raw)
+		if err != nil {
+			problems = append(problems, "S3_PATH_STYLE must be true or false")
+		}
+		cfg.S3.PathStyle = pathStyle
+	}
+
+	if raw := getenv("GUEST_SESSION_TTL"); raw != "" {
+		ttl, err := time.ParseDuration(raw)
+		if err != nil || ttl <= 0 {
+			problems = append(problems, "GUEST_SESSION_TTL must be a positive duration such as 72h")
+		}
+		cfg.GuestSessionTTL = ttl
 	}
 
 	if key := required("OTP_HMAC_KEY"); key != "" {
@@ -126,7 +181,8 @@ func normalizeBaseURL(raw string) (string, bool) {
 // String summarizes the configuration with every secret redacted.
 func (c Config) String() string {
 	return fmt.Sprintf(
-		"Config{http=:%s grpc=:%s redis=%s smtp=%s from=%s shortLinkBase=%s cookieSecure=%t database=[redacted] redisPassword=[redacted] smtpPassword=[redacted] otpKey=[redacted]}",
+		"Config{http=:%s grpc=:%s redis=%s smtp=%s from=%s shortLinkBase=%s cookieSecure=%t s3=%s/%s guestSessionTTL=%s database=[redacted] redisPassword=[redacted] smtpPassword=[redacted] otpKey=[redacted] s3Secret=[redacted]}",
 		c.HTTPPort, c.GRPCPort, c.RedisAddr, c.SMTPAddr, c.SMTPFrom, c.ShortLinkBaseURL, c.CookieSecure,
+		c.S3.Endpoint, c.S3.Bucket, c.GuestSessionTTL,
 	)
 }

@@ -23,6 +23,12 @@ func fullEnv() map[string]string {
 		"OTP_HMAC_KEY":   testHMACKey,
 
 		"SHORT_LINK_BASE_URL": "https://sela.example.test",
+
+		"S3_ENDPOINT":          "http://127.0.0.1:9000",
+		"S3_REGION":            "us-east-1",
+		"S3_BUCKET":            "sela-media-test",
+		"S3_ACCESS_KEY_ID":     "minio-access",
+		"S3_SECRET_ACCESS_KEY": "s3secret-value",
 	}
 }
 

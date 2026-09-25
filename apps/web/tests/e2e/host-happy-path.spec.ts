@@ -113,7 +113,7 @@ test('a host signs in, creates an event and gets a working short link and QR cod
 	expect(await page.evaluate(() => document.cookie)).not.toContain('sela_session');
 
 	// A guest (no cookie) resolves the short code to guest-safe metadata only.
-	const guest = await request.get(`${API_URL}/e/${code}`);
+	const guest = await request.get(`${API_URL}/api/v1/e/${code}`);
 	expect(guest.status()).toBe(200);
 	const guestBody = await guest.text();
 	expect(JSON.parse(guestBody).data.event_id).toBe(eventId);

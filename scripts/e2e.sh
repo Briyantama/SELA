@@ -37,10 +37,14 @@ done
 
 listening() { (echo >"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 
-START_HINT="docker compose --env-file .env -f deploy/docker-compose.yml up -d redis mailpit"
+START_HINT="docker compose --env-file .env -f deploy/docker-compose.yml up -d redis mailpit minio minio-init"
 listening 6379 || fail "Redis is not reachable on 6379. Start it with: $START_HINT"
 listening 1025 || fail "Mailpit SMTP is not reachable on 1025. Start it with: $START_HINT"
 listening 8025 || fail "Mailpit API is not reachable on 8025. Start it with: $START_HINT"
+listening 9000 || fail "MinIO (S3) is not reachable on 9000. Start it with: $START_HINT"
+for name in S3_ENDPOINT S3_REGION S3_BUCKET S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY; do
+  [ -n "${!name:-}" ] || fail "$name is not set; copy the S3 entries from .env.example to .env"
+done
 # The tests reset rate-limit keys through `docker exec` on this container, so the Redis on 6379 must be it.
 # NOTE: that reset clears the API's rate-limit/lockout keys (rl:*, attempts:*, lock:*) on this Redis, which
 # also clears any real dev lockouts; use a Redis you do not mind that on (the compose one).
@@ -100,7 +104,7 @@ PORT="$API_PORT" GRPC_PORT="$GRPC_PORT_E2E" \
   REDIS_ADDR="127.0.0.1:6379" REDIS_PASSWORD="$REDIS_PASSWORD" \
   SMTP_ADDR="127.0.0.1:1025" SMTP_FROM="no-reply@sela.local" \
   OTP_HMAC_KEY="$OTP_HMAC_KEY" \
-  SHORT_LINK_BASE_URL="http://localhost:$WEB_PORT" \
+  SHORT_LINK_BASE_URL="http://localhost:$WEB_PORT"   S3_ENDPOINT="$S3_ENDPOINT" S3_REGION="$S3_REGION" S3_BUCKET="$S3_BUCKET"   S3_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" S3_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" \
   COOKIE_SECURE=false \
   "$WORK/sela-api" >"$WORK/api.log" 2>&1 &
 API_PID=$!

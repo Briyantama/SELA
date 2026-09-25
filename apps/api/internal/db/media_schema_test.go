@@ -68,7 +68,7 @@ func markReady(t *testing.T, conn *sql.DB, mediaID string) {
 	}
 }
 
-func TestMigration0004_createsTheTablesAndDownRemovesThem(t *testing.T) {
+func TestMigration0006_createsTheTablesAndDownRemovesThem(t *testing.T) {
 	// Arrange
 	conn := migrated(t)
 	ctx := context.Background()
