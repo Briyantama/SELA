@@ -232,3 +232,89 @@ func deref(s *string) string {
 	}
 	return *s
 }
+
+func TestStartSessionByCode_resolvesTheShortCodeAndCreatesASession(t *testing.T) {
+	// A guest arrives holding only the short code from the QR, so the session must open without a
+	// prior resolve round trip, and everything downstream must see the resolved event id.
+	// Arrange
+	f := newFixture(t)
+	eventID, code := f.eventWithCode(t, eventOpts{shotLimit: limit(5), involvesMinors: true})
+
+	// Act
+	started, err := f.svc.StartSessionByCode(context.Background(), code, "", nil)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("StartSessionByCode: %v", err)
+	}
+	if started.Guest.EventID != eventID {
+		t.Fatalf("event id = %q, want the resolved %q", started.Guest.EventID, eventID)
+	}
+	if started.Token == "" || started.Resumed || started.Guest.SessionID == "" {
+		t.Fatalf("started = %+v", started)
+	}
+	if started.ShotsRemaining == nil || *started.ShotsRemaining != 5 || !started.InvolvesMinors {
+		t.Fatalf("shots = %v, minors = %t", started.ShotsRemaining, started.InvolvesMinors)
+	}
+	var rows int
+	_ = f.conn.QueryRow(`SELECT count(*) FROM guest_sessions WHERE session_id = $1 AND event_id = $2`,
+		started.Guest.SessionID, eventID).Scan(&rows)
+	if rows != 1 {
+		t.Fatalf("guest_sessions rows = %d, want 1", rows)
+	}
+}
+
+func TestStartSessionByCode_refusesEveryCodeAGuestCannotJoinIdentically(t *testing.T) {
+	// A guest must not be able to tell an unknown code from a draft, expired or malformed one:
+	// the code space is the only secret, so probing it must yield one indistinguishable answer.
+	f := newFixture(t)
+	past := f.clock.Now().Add(-time.Minute)
+	_, draft := f.eventWithCode(t, eventOpts{status: "draft"})
+	_, expired := f.eventWithCode(t, eventOpts{status: "expired"})
+	_, pastExpiry := f.eventWithCode(t, eventOpts{expiresAt: &past})
+	_, live := f.eventWithCode(t, eventOpts{})
+
+	tests := []struct {
+		name string
+		code string
+	}{
+		{"draft", draft},
+		{"expired status", expired},
+		{"past expiry", pastExpiry},
+		{"unknown", "ZZZZZZZZ"},
+		{"wrong case", strings.ToUpper(live)},
+		{"too short", "Md1"},
+		{"too long", "Md0000001"},
+		{"not base62", "Md-00001"},
+		{"empty", ""},
+		{"injection", "'; DROP TABLE events; --"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Act
+			_, err := f.svc.StartSessionByCode(context.Background(), tc.code, "", nil)
+
+			// Assert
+			if !errors.Is(err, media.ErrNotFound) {
+				t.Fatalf("err = %v, want ErrNotFound", err)
+			}
+		})
+	}
+}
+
+func TestStartSessionByCode_validatesTheNicknameLikeTheEventIDRoute(t *testing.T) {
+	// Arrange
+	f := newFixture(t)
+	_, code := f.eventWithCode(t, eventOpts{})
+	tooLong := strings.Repeat("a", 41)
+
+	// Act
+	_, err := f.svc.StartSessionByCode(context.Background(), code, "", &tooLong)
+
+	// Assert
+	var invalid *media.ValidationError
+	if !errors.As(err, &invalid) || invalid.Field != "nickname" {
+		t.Fatalf("err = %v, want a nickname ValidationError", err)
+	}
+}

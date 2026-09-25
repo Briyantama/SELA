@@ -42,6 +42,7 @@ func newLimitedMux(svc media.Guests, l media.Limiter) *http.ServeMux {
 
 const (
 	sessionPath = "/api/v1/events/" + eventA + "/guest-session"
+	byCodePath  = "/api/v1/e/Md000001/guest-session"
 	uploadPath  = "/api/v1/events/" + eventA + "/media/uploads"
 	uploadBody  = `{"content_type":"image/jpeg","size_bytes":1024}`
 )
@@ -163,5 +164,31 @@ func TestHTTPRateLimit_onlyTheAbuseProneRoutesAreLimited(t *testing.T) {
 	}
 	if len(lim.calls) != 0 {
 		t.Errorf("limiter consulted for unlimited routes: %+v", lim.calls)
+	}
+}
+
+func TestHTTPRateLimit_theShortCodeSessionRouteSharesTheSameBucket(t *testing.T) {
+	// Opening a session by short code is the one route that turns a guessed code into work, so it
+	// must sit behind the same per-client bucket as the event-id route -- otherwise it would be an
+	// unlimited way to probe the code space.
+	// Arrange
+	svc := &stubGuests{}
+	lim := &stubLimiter{block: map[string]bool{"guest-session": true}}
+
+	// Act
+	rec := send(newLimitedMux(svc, lim), "POST", byCodePath, "")
+
+	// Assert
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429: %s", rec.Code, rec.Body)
+	}
+	if got := rec.Header().Get("Retry-After"); got != "30" {
+		t.Errorf("Retry-After = %q, want 30", got)
+	}
+	if svc.gotCode != "" {
+		t.Errorf("StartSessionByCode ran although the client was rate limited (code %q)", svc.gotCode)
+	}
+	if len(lim.calls) != 1 || lim.calls[0].scope != "guest-session" {
+		t.Fatalf("limiter calls = %+v, want one guest-session call", lim.calls)
 	}
 }

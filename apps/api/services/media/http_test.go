@@ -35,6 +35,7 @@ type stubGuests struct {
 	item      media.Item
 	items     []media.Item
 	gotToken  string
+	gotCode   string
 	gotNick   *string
 	gotType   string
 	gotSize   int64
@@ -43,6 +44,11 @@ type stubGuests struct {
 
 func (s *stubGuests) StartSession(_ context.Context, _ string, token string, nickname *string) (media.StartedSession, error) {
 	s.gotToken, s.gotNick = token, nickname
+	return s.started, s.err
+}
+
+func (s *stubGuests) StartSessionByCode(_ context.Context, code, token string, nickname *string) (media.StartedSession, error) {
+	s.gotCode, s.gotToken, s.gotNick = code, token, nickname
 	return s.started, s.err
 }
 
@@ -429,5 +435,60 @@ func TestHTTP_fullGuestFlowAgainstTheRealService(t *testing.T) {
 	}](t, mine)
 	if len(list.Items) != 1 || list.Items[0]["media_id"] != up.MediaID || list.Items[0]["processing_state"] != "ready" {
 		t.Fatalf("my-media = %v", list.Items)
+	}
+}
+
+func TestHTTPGuestSessionByCode_scopesTheCookieToTheResolvedEventNotTheCodePath(t *testing.T) {
+	// The guest arrives with a short code only. The session opens in one round trip, and the cookie
+	// must be scoped to the resolved event's API paths so the upload routes receive it.
+	// Arrange
+	five := 5
+	svc := &stubGuests{started: media.StartedSession{
+		Token: "secret-token-value", Guest: media.Guest{EventID: eventA, SessionID: "s-1"},
+		ShotLimit: &five, ShotsRemaining: &five, ExpiresIn: 72 * time.Hour,
+	}}
+
+	// Act
+	rec := send(newMux(svc, true), "POST", "/api/v1/e/Md000001/guest-session", `{"nickname":"Budi"}`)
+
+	// Assert
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201: %s", rec.Code, rec.Body)
+	}
+	if svc.gotCode != "Md000001" {
+		t.Fatalf("short code passed = %q", svc.gotCode)
+	}
+	if strings.Contains(rec.Body.String(), "secret-token-value") {
+		t.Fatal("the guest token leaked into the response body")
+	}
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("cookies = %v, want one", cookies)
+	}
+	if c := cookies[0]; c.Path != "/api/v1/events/"+eventA || !c.HttpOnly || !c.Secure {
+		t.Fatalf("cookie = %+v, want it scoped to the resolved event", c)
+	}
+	data, _ := decodeInto[map[string]any](t, rec)
+	if data["event_id"] != eventA || data["session_id"] != "s-1" {
+		t.Fatalf("data = %v, want the resolved event id so the client can resume later", data)
+	}
+	if svc.gotNick == nil || *svc.gotNick != "Budi" {
+		t.Fatalf("nickname passed = %v", svc.gotNick)
+	}
+}
+
+func TestHTTPGuestSessionByCode_hidesWhyACodeDidNotResolve(t *testing.T) {
+	// Arrange
+	svc := &stubGuests{err: media.ErrNotFound}
+
+	// Act
+	rec := send(newMux(svc, true), "POST", "/api/v1/e/ZZZZZZZZ/guest-session", "")
+
+	// Assert
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404: %s", rec.Code, rec.Body)
+	}
+	if rec.Result().Cookies() != nil && len(rec.Result().Cookies()) != 0 {
+		t.Fatalf("a failed resolve set cookies: %v", rec.Result().Cookies())
 	}
 }

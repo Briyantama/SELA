@@ -130,6 +130,7 @@ func TestNewMux_servesHealthAuthAndEventEndpoints(t *testing.T) {
 		{"resolver is public", http.MethodGet, "/api/v1/e/AbCdEfGh", "", false, http.StatusOK},
 		{"retired guest pwa path is not served", http.MethodGet, "/e/AbCdEfGh", "", false, http.StatusNotFound},
 		{"guest session is public", http.MethodPost, eventPath + "/guest-session", "", false, http.StatusCreated},
+		{"guest session by short code is public", http.MethodPost, "/api/v1/e/AbCdEfGh/guest-session", "", false, http.StatusCreated},
 		{"guest upload needs the guest cookie", http.MethodPost, eventPath + "/media/uploads", `{"content_type":"image/jpeg","size_bytes":1}`, false, http.StatusUnauthorized},
 		{"my media needs the guest cookie", http.MethodGet, eventPath + "/my-media", "", false, http.StatusUnauthorized},
 		{"hall of fame needs the guest cookie", http.MethodGet, eventPath + "/hall-of-fame", "", false, http.StatusUnauthorized},

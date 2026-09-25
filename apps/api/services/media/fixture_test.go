@@ -109,7 +109,15 @@ type eventOpts struct {
 	involvesMinors bool
 }
 
+// event inserts an event and returns its id. Use eventWithCode when the test needs the short code.
 func (f *fixture) event(t *testing.T, o eventOpts) string {
+	t.Helper()
+	id, _ := f.eventWithCode(t, o)
+	return id
+}
+
+// eventWithCode inserts an event and returns its id and its generated short code.
+func (f *fixture) eventWithCode(t *testing.T, o eventOpts) (string, string) {
 	t.Helper()
 	if o.hostID == "" {
 		o.hostID = f.host(t)
@@ -121,19 +129,20 @@ func (f *fixture) event(t *testing.T, o eventOpts) string {
 		o.status = "active"
 	}
 	n := seq.Add(1)
+	code := fmt.Sprintf("Md%06d", n%1000000)
 	var id string
 	err := f.conn.QueryRow(
 		`INSERT INTO events (host_id, category_code, name, event_date, access_token, short_code,
 		                     shot_limit, reveal_mode, reveal_at, status, expires_at, involves_minors)
 		 VALUES ($1, 'ulang_tahun', 'Pesta Sela', '2026-12-01', $2, $3, $4, $5, $6, $7, $8, $9)
 		 RETURNING event_id`,
-		o.hostID, fmt.Sprintf("media-token-%020d-abcdefghijklmnop", n), fmt.Sprintf("Md%06d", n%1000000),
+		o.hostID, fmt.Sprintf("media-token-%020d-abcdefghijklmnop", n), code,
 		o.shotLimit, o.revealMode, o.revealAt, o.status, o.expiresAt, o.involvesMinors,
 	).Scan(&id)
 	if err != nil {
 		t.Fatalf("insert event: %v", err)
 	}
-	return id
+	return id, code
 }
 
 func limit(n int) *int { return &n }
